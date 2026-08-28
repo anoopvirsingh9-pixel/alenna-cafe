@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@theme {
+  --color-brand: #c9b17a;
+  --color-brand-light: #e0d0a0;
+  --color-brand-dark: #2c4545;
+  --color-teal: #2c4545;
+  --color-teal-deep: #1c2e2e;
+  --color-gold: #c9b17a;
+  --color-cream: #f7f1e6;
+  --color-cream-dark: #eadfc8;
+  --color-sage: #8aa09a;
+  --color-sage-dark: #5d736d;
+  --color-charcoal: #1c2e2e;
+  --color-warm-gray: #6b6b6b;
+  --font-heading: "Playfair Display", Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+}
+
+input, textarea, button, select, label {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: pointer;
+}
+
+button {
+  cursor: pointer;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(201, 177, 122, 0.25); }
+  50% { box-shadow: 0 0 24px rgba(201, 177, 122, 0.55); }
+}
+
+@keyframes pin-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-pin-shake { animation: pin-shake 0.4s ease-in-out; }
+
+.hero-gradient {
+  background: linear-gradient(135deg, rgba(28, 46, 46, 0.88) 0%, rgba(44, 69, 69, 0.72) 55%, rgba(201, 177, 122, 0.35) 100%);
+}
+
+.menu-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.menu-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(28, 46, 46, 0.16);
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #f7f1e6; }
+::-webkit-scrollbar-thumb { background: #c9b17a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2c4545; }
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid #c9b17a;
+}
+.pin-dot.filled {
+  background: #c9b17a;
+}
