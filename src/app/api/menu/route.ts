@@ -6,6 +6,8 @@ import { ensureSeeded } from "@/lib/seed";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { asc } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   await ensureSeeded();
   const items = await db.select().from(menuItems).orderBy(asc(menuItems.sortOrder));

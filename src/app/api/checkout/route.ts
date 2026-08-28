@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPaidOrder } from "@/lib/store";
 import { ensureSeeded } from "@/lib/seed";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     await ensureSeeded();

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { generatePickupSlots, getStoreSettings, slotCount } from "@/lib/store";
 import { ensureSeeded } from "@/lib/seed";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   await ensureSeeded();
   const settings = await getStoreSettings();

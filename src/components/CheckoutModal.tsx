@@ -333,6 +333,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />
               <h3 className="text-2xl font-bold text-teal" style={{ fontFamily: "'Playfair Display', serif" }}>Paid & confirmed</h3>
               <p className="mt-2 text-sm text-warm-gray">Order #{orderId} is in the kitchen queue. Bring your name or phone when you collect.</p>
+              <p className="mt-1 text-xs text-warm-gray">💡 Save your Order ID — <strong>#{orderId}</strong> — you can follow it live in the "Track Your Pickup" section on this page.</p>
             </div>
           )}
         </div>

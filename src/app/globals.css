@@ -27,18 +27,33 @@ body {
   user-select: none;
 }
 
+/* Only real text fields should allow selection + a text cursor.
+   (This fixes the "blinking line" that appeared when clicking things.) */
 input, textarea, [contenteditable="true"] {
-  user-select: text;
-}
-
-input, textarea, button, select, label {
   -webkit-user-select: text;
   user-select: text;
-  cursor: pointer;
+  cursor: text;
+}
+
+button, a, label, select, img {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 button {
   cursor: pointer;
+}
+
+/* No ugly outline when clicking with a mouse —
+   keyboard users still get a clear gold focus ring (accessible). */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid #c9b17a;
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 @keyframes float {

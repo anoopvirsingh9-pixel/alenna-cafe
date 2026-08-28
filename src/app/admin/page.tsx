@@ -61,6 +61,32 @@ type Note = { id: number; type: string; destination: string; subject: string; me
 
 type Tab = "orders" | "menu" | "reports" | "customers" | "promos" | "settings" | "inbox";
 
+/** Turn an uploaded photo into a small, fast data-URL (max 1000px, JPEG). */
+async function fileToResizedDataUrl(file: File): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  if (typeof document === "undefined") return dataUrl;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1000;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 export default function AdminPage() {
   const unlockedRef = useRef(false);
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -77,9 +103,11 @@ export default function AdminPage() {
   const [selected, setSelected] = useState<Order | null>(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [newItem, setNewItem] = useState({ name: "", price: "", category: "breakfast", description: "" });
+  const [newItem, setNewItem] = useState({ name: "", price: "", category: "breakfast", description: "", image: "" });
   const [newPromo, setNewPromo] = useState({ code: "", type: "percent", value: "10", min: "20", description: "" });
   const [saveMsg, setSaveMsg] = useState("");
+  const [menuMsg, setMenuMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const unlock = (token?: string) => {
     if (token) writeStaffToken(token);
@@ -189,24 +217,65 @@ export default function AdminPage() {
     }
   };
 
+  const flashMenuMsg = (msg: string) => {
+    setMenuMsg(msg);
+    setTimeout(() => setMenuMsg(""), 6000);
+  };
+
   const saveMenuItem = async (item: MenuRow) => {
-    await staffFetch("/api/menu", {
+    setBusy(true);
+    const res = await staffFetch("/api/menu", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(item),
     });
+    setBusy(false);
+    if (res.ok) flashMenuMsg(`✅ "${item.name}" saved — the live website is updated.`);
+    else {
+      const data = await res.json().catch(() => ({}));
+      flashMenuMsg(`❌ Could not save "${item.name}": ${data.error || `server error ${res.status}`}`);
+    }
     load();
   };
 
   const addMenuItem = async () => {
-    if (!newItem.name || !newItem.price) return;
-    await staffFetch("/api/menu", {
+    if (!newItem.name.trim() || !newItem.price.trim()) {
+      flashMenuMsg("⚠️ Give the new item at least a name and a price.");
+      return;
+    }
+    const priceNumber = Number(newItem.price);
+    if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
+      flashMenuMsg("⚠️ Price must be a number like 12.50");
+      return;
+    }
+    setBusy(true);
+    const res = await staffFetch("/api/menu", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem),
     });
-    setNewItem({ name: "", price: "", category: "breakfast", description: "" });
+    setBusy(false);
+    if (res.ok) {
+      flashMenuMsg(`✅ "${newItem.name}" is now live on the website menu!`);
+      setNewItem({ name: "", price: "", category: "breakfast", description: "", image: "" });
+    } else {
+      const data = await res.json().catch(() => ({}));
+      flashMenuMsg(`❌ Failed to add item: ${data.error || `server error ${res.status}`}`);
+    }
     load();
+  };
+
+  const pickNewItemPhoto = async (file?: File | null) => {
+    if (!file) return;
+    const dataUrl = await fileToResizedDataUrl(file);
+    setNewItem((prev) => ({ ...prev, image: dataUrl }));
+  };
+
+  const changeItemPhoto = async (itemId: string, file?: File | null) => {
+    if (!file) return;
+    const dataUrl = await fileToResizedDataUrl(file);
+    setMenu((rows) => rows.map((row) => (row.id === itemId ? { ...row, image: dataUrl } : row)));
+    flashMenuMsg("📷 Photo updated — press Save on that item to publish it.");
   };
 
   const addPromo = async () => {
@@ -328,9 +397,15 @@ export default function AdminPage() {
             <button
               key={item.id}
               onClick={() => setTab(item.id)}
-              className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm whitespace-nowrap ${tab === item.id ? "bg-brand text-teal-deep" : "bg-white/10"}`}
+              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm whitespace-nowrap ${tab === item.id ? "bg-brand text-teal-deep" : "bg-white/10"}`}
             >
               <item.icon className="h-4 w-4" /> {item.label}
+              {item.id === "orders" && stats.active > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">{stats.active}</span>
+              )}
+              {item.id === "inbox" && notes.length > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-light text-[10px] font-bold text-teal-deep">{notes.length}</span>
+              )}
             </button>
           ))}
         </div>
@@ -402,39 +477,85 @@ export default function AdminPage() {
 
         {tab === "menu" && (
           <div className="space-y-4">
-            <div className="grid gap-3 rounded-2xl bg-white p-4 md:grid-cols-5">
-              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="New item name" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
-              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Price" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} />
-              <select className="rounded-xl border px-3 py-2 text-sm" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
-                <option value="breakfast">Breakfast</option>
-                <option value="sweet">Sweet</option>
-                <option value="lunch">Lunch</option>
-                <option value="drinks">Drinks</option>
-              </select>
-              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} />
-              <button onClick={addMenuItem} className="rounded-xl bg-teal text-sm font-bold text-brand"><Plus className="mr-1 inline h-4 w-4" /> Add item</button>
-            </div>
-            {menu.map((item) => (
-              <div key={item.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4">
-                <img src={item.image} alt="" className="h-14 w-14 rounded-xl object-cover" />
-                <div className="min-w-[180px] flex-1">
-                  <input className="w-full font-semibold" value={item.name} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, name: e.target.value } : row)))} />
-                  <p className="text-xs text-warm-gray">{item.category}</p>
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <h3 className="font-bold text-teal">Add a new menu item</h3>
+              <p className="mb-4 text-xs text-warm-gray">New items appear on the live website the moment you add them.</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Item name (e.g. Big Breakfast)" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+                <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Price (e.g. 22.50)" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} />
+                <select className="rounded-xl border px-3 py-2 text-sm" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}>
+                  <option value="breakfast">🍳 Breakfast & Benny</option>
+                  <option value="sweet">🥞 Sweet Treats</option>
+                  <option value="lunch">🥗 Lunch Mains</option>
+                  <option value="drinks">☕ Drinks</option>
+                </select>
+                <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Short description" value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} />
+                <div className="flex flex-wrap items-center gap-2 md:col-span-2">
+                  <label className="cursor-pointer rounded-xl bg-cream px-4 py-2 text-sm font-semibold text-teal hover:bg-brand/40">
+                    📷 Upload a photo
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { pickNewItemPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                  </label>
+                  <span className="text-xs text-warm-gray">or</span>
+                  <input className="min-w-[220px] flex-1 rounded-xl border px-3 py-2 text-xs" placeholder="Paste an image link (https://...)" value={newItem.image.startsWith("data:") ? "" : newItem.image} onChange={(e) => setNewItem({ ...newItem, image: e.target.value })} />
+                  {newItem.image && <img src={newItem.image} alt="preview" className="h-14 w-14 rounded-xl border object-cover" />}
                 </div>
-                <input className="w-20 rounded-lg border px-2 py-1 text-sm" value={item.price} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, price: Number(e.target.value) } : row)))} />
-                <label className="text-xs"><input type="checkbox" checked={item.soldOut} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, soldOut: e.target.checked } : row)))} /> Sold out</label>
-                <button onClick={() => saveMenuItem(item)} className="rounded-lg bg-teal px-3 py-2 text-xs font-bold text-brand">Save</button>
-                <button
-                  onClick={async () => {
-                    await staffFetch(`/api/menu?id=${item.id}`, {
-                      method: "DELETE",
-                    });
-                    load();
-                  }}
-                  className="rounded-lg p-2 text-red-500"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+              </div>
+              <button onClick={addMenuItem} disabled={busy} className="mt-4 rounded-xl bg-teal px-6 py-3 text-sm font-bold text-brand disabled:opacity-50">
+                <Plus className="mr-1 inline h-4 w-4" /> Add item to live menu
+              </button>
+            </div>
+
+            {menuMsg && (
+              <div className="rounded-xl border border-brand/40 bg-white px-4 py-3 text-sm font-semibold text-teal shadow-sm">{menuMsg}</div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-teal">Your live menu ({menu.length} items)</h3>
+              <p className="text-xs text-warm-gray">Edit anything, then press Save on that item — the website updates instantly.</p>
+            </div>
+
+            {menu.map((item) => (
+              <div key={item.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex w-20 flex-col items-center gap-1.5">
+                    <img src={item.image} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                    <label className="cursor-pointer rounded-lg bg-cream px-2 py-1 text-center text-[10px] font-bold text-teal hover:bg-brand/40">
+                      Change photo
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => { changeItemPhoto(item.id, e.target.files?.[0]); e.target.value = ""; }} />
+                    </label>
+                  </div>
+                  <div className="min-w-[220px] flex-1 space-y-2">
+                    <input className="w-full rounded-lg border px-2 py-1.5 text-sm font-semibold" value={item.name} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, name: e.target.value } : row)))} />
+                    <input className="w-full rounded-lg border px-2 py-1.5 text-xs text-warm-gray" placeholder="Description" value={item.description} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, description: e.target.value } : row)))} />
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                      <select value={item.category} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, category: e.target.value } : row)))} className="rounded-lg border px-2 py-1.5">
+                        <option value="breakfast">🍳 Breakfast & Benny</option>
+                        <option value="sweet">🥞 Sweet Treats</option>
+                        <option value="lunch">🥗 Lunch Mains</option>
+                        <option value="drinks">☕ Drinks</option>
+                      </select>
+                      <label className="flex items-center gap-1 font-semibold">$
+                        <input className="w-16 rounded-lg border px-2 py-1.5" value={item.price} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, price: Number(e.target.value) } : row)))} />
+                      </label>
+                      <label className="flex items-center gap-1.5 font-semibold"><input type="checkbox" checked={item.soldOut} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, soldOut: e.target.checked } : row)))} /> Sold out</label>
+                      <label className="flex items-center gap-1.5 font-semibold"><input type="checkbox" checked={item.available !== false} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, available: e.target.checked } : row)))} /> Visible on site</label>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => saveMenuItem(item)} disabled={busy} className="rounded-xl bg-teal px-4 py-2 text-xs font-bold text-brand disabled:opacity-50">Save</button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Delete "${item.name}" from the menu? This cannot be undone.`)) return;
+                        await staffFetch(`/api/menu?id=${encodeURIComponent(item.id)}`, { method: "DELETE" });
+                        flashMenuMsg(`🗑️ "${item.name}" deleted.`);
+                        load();
+                      }}
+                      className="rounded-xl p-2 text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

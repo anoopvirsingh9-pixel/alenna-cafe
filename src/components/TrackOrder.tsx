@@ -11,13 +11,14 @@ export default function TrackOrder() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    const id = query.trim().replace(/^#/, "");
+    if (!id) return;
     setLoading(true);
     setError("");
     setOrder(null);
 
     try {
-      const res = await fetch(`/api/orders?id=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(`/api/orders?id=${encodeURIComponent(id)}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Order not found");
@@ -47,7 +48,8 @@ export default function TrackOrder() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-warm-gray w-4 h-4" />
             <input
               type="text"
-              placeholder="Enter Order ID..."
+              inputMode="numeric"
+              placeholder="Enter your Order ID (shown after checkout)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-teal text-sm"
