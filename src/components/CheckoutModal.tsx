@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle,
   Clock,
-  CreditCard,
   Loader2,
   Lock,
   Mail,
@@ -37,10 +36,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     notes: "",
     promo: "",
     redeem: 0,
-    cardName: "",
-    cardNumber: "",
-    expiry: "",
-    cvc: "",
     channel: "sms" as "sms" | "email",
   });
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -152,10 +147,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         notes: form.notes,
         promoCode: promoLabel || form.promo,
         redeemPoints: form.redeem,
-        cardNumber: form.cardNumber,
-        cardName: form.cardName,
-        expiry: form.expiry,
-        cvc: form.cvc,
+        method: "instore",
         items: cart.map((item) => ({
           id: item.id,
           menuItemId: item.menuItemId,
@@ -208,9 +200,9 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         <div className="flex items-center justify-between border-b bg-cream px-6 py-5">
           <div>
             <h2 className="text-2xl font-bold text-teal" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {step === "verify" ? "Verify it's you" : step === "pay" ? "Prepay securely" : "Checkout"}
+              {step === "verify" ? "Verify it's you" : step === "pay" ? "Reserve — pay in store" : "Checkout"}
             </h2>
-            <p className="text-xs text-warm-gray">Alenna Pay · GST included · pickup only</p>
+            <p className="text-xs text-warm-gray">Pay at pickup · GST included · card or cash</p>
           </div>
           <button onClick={onClose} className="rounded-full bg-white p-2 shadow-sm"><X className="h-5 w-5" /></button>
         </div>
@@ -309,16 +301,20 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
                 <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
                 {discount > 0 && <div className="flex justify-between text-green-700"><span>Promo</span><span>−${discount.toFixed(2)}</span></div>}
                 {redeemValue > 0 && <div className="flex justify-between text-green-700"><span>Loyalty</span><span>−${redeemValue.toFixed(2)}</span></div>}
-                <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold text-teal"><span>Pay now</span><span>${total.toFixed(2)}</span></div>
+                <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold text-teal"><span>Total</span><span>${total.toFixed(2)}</span></div>
               </div>
-              <label className="block text-sm font-semibold text-teal"><CreditCard className="mr-1 inline h-4 w-4" /> Cardholder</label>
-              <input className="w-full rounded-xl border px-4 py-3 text-sm" value={form.cardName} onChange={(e) => setForm({ ...form, cardName: e.target.value })} />
-              <input className="w-full rounded-xl border px-4 py-3 text-sm" placeholder="Card number (try 4242 4242 4242 4242)" value={form.cardNumber} onChange={(e) => setForm({ ...form, cardNumber: e.target.value })} />
-              <div className="grid grid-cols-2 gap-3">
-                <input className="rounded-xl border px-4 py-3 text-sm" placeholder="MM/YY" value={form.expiry} onChange={(e) => setForm({ ...form, expiry: e.target.value })} />
-                <input className="rounded-xl border px-4 py-3 text-sm" placeholder="CVC" value={form.cvc} onChange={(e) => setForm({ ...form, cvc: e.target.value })} />
+
+              <div className="rounded-2xl border-2 border-teal/60 bg-teal/5 p-4">
+                <p className="text-sm font-bold text-teal">🏪 Pay in store — card or cash</p>
+                <p className="mt-1 text-xs leading-relaxed text-warm-gray">
+                  Nothing is charged now. Your order goes straight to the kitchen queue — just give your name or order number at the counter and pay <strong>${total.toFixed(2)}</strong> when you pick up (EFTPOS, card or cash).
+                </p>
               </div>
-              <p className="flex items-center gap-2 text-xs text-warm-gray"><Lock className="h-4 w-4" /> Card details are validated server-side and never stored. Use 4242424242424242 for a successful demo charge.</p>
+
+              <div className="flex items-start gap-2 rounded-xl bg-cream/60 p-3 text-xs text-warm-gray">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>Your phone/email is verified with a code so the cafe knows the order is real. No card details needed.</span>
+              </div>
             </div>
           )}
 
@@ -333,7 +329,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
             <div className="py-10 text-center">
               <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />
               <h3 className="text-2xl font-bold text-teal" style={{ fontFamily: "'Playfair Display', serif" }}>Paid & confirmed</h3>
-              <p className="mt-2 text-sm text-warm-gray">Order #{orderId} is in the kitchen queue. Bring your name or phone when you collect.</p>
+              <p className="mt-2 text-sm text-warm-gray">Order #{orderId} is in the kitchen queue. Pay at the counter when you collect — and bring your name or phone.</p>
               <p className="mt-1 text-xs text-warm-gray">💡 Save your Order ID — <strong>#{orderId}</strong> — you can follow it live in the "Track Your Pickup" section on this page.</p>
             </div>
           )}
@@ -346,7 +342,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         )}
         {step === "pay" && (
           <div className="border-t p-6">
-            <button onClick={pay} className="w-full rounded-xl bg-teal py-4 font-bold text-brand">Pay ${total.toFixed(2)} & place order</button>
+            <button onClick={pay} className="w-full rounded-xl bg-teal py-4 font-bold text-brand">Place order — pay ${total.toFixed(2)} in store</button>
           </div>
         )}
         </motion.div>

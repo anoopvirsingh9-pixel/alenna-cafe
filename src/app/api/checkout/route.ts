@@ -4,6 +4,10 @@ import { ensureSeeded } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
 
+// PAY IN STORE ONLY — online card payment is disabled.
+// Every order is created as "pay on pickup"; card details are never
+// accepted or validated. (Online payments return only if the cafe ever
+// signs up with a real payment provider.)
 export async function POST(request: NextRequest) {
   try {
     await ensureSeeded();
@@ -18,10 +22,7 @@ export async function POST(request: NextRequest) {
       notes: body.notes,
       promoCode: body.promoCode,
       redeemPoints: Number(body.redeemPoints || 0),
-      cardNumber: body.cardNumber,
-      cardName: body.cardName,
-      expiry: body.expiry,
-      cvc: body.cvc,
+      method: "instore",
     });
     return NextResponse.json({ success: true, order }, { status: 201 });
   } catch (error) {
