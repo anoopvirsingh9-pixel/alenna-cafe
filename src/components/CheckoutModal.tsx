@@ -199,11 +199,12 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
       </AnimatePresence>
 
       <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="fixed inset-4 z-[90] mx-auto flex max-h-[90vh] max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full"
-      >
+      <div className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center sm:p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+        >
         <div className="flex items-center justify-between border-b bg-cream px-6 py-5">
           <div>
             <h2 className="text-2xl font-bold text-teal" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -348,7 +349,8 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
             <button onClick={pay} className="w-full rounded-xl bg-teal py-4 font-bold text-brand">Pay ${total.toFixed(2)} & place order</button>
           </div>
         )}
-      </motion.div>
+        </motion.div>
+      </div>
     </>
   );
 }
