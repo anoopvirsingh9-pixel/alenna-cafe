@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { listOrders, refundOrder, updateOrderStatus } from "@/lib/store";
+import { listOrders, markPaidInStore, refundOrder, updateOrderStatus } from "@/lib/store";
 import { ensureSeeded } from "@/lib/seed";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
@@ -39,6 +39,10 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     if (body.action === "refund") {
       const order = await refundOrder(Number(body.id), body.amountCents ? Number(body.amountCents) : undefined);
+      return NextResponse.json({ success: true, order });
+    }
+    if (body.action === "paidInStore") {
+      const order = await markPaidInStore(Number(body.id));
       return NextResponse.json({ success: true, order });
     }
     const order = await updateOrderStatus(Number(body.id), String(body.status));

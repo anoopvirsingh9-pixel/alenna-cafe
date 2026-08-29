@@ -211,6 +211,15 @@ export default function AdminPage() {
     load();
   };
 
+  const paidInStore = async (id: number) => {
+    await staffFetch("/api/orders", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "paidInStore" }),
+    });
+    load();
+  };
+
   const saveSettings = async (next: StoreSettings) => {
     setSettings(next);
     const res = await staffFetch("/api/admin/data", {
@@ -351,14 +360,16 @@ export default function AdminPage() {
   });
 
   const stats = useMemo(() => {
-    const paid = orders.filter((o) => o.status !== "Cancelled");
+    const notCancelled = orders.filter((o) => o.status !== "Cancelled");
+    const paid = notCancelled.filter((o) => o.paymentStatus === "paid");
     const revenue = paid.reduce((sum, o) => sum + (o.totalCents - o.refundedCents), 0) / 100;
+    const owed = notCancelled.filter((o) => o.paymentStatus !== "paid").reduce((sum, o) => sum + (o.totalCents - o.refundedCents), 0) / 100;
     const active = orders.filter((o) => ["Confirmed", "Preparing", "Ready for Pickup"].includes(o.status)).length;
     const itemMap = new Map<string, number>();
-    paid.forEach((order) => order.items.forEach((item) => itemMap.set(item.name, (itemMap.get(item.name) || 0) + item.quantity)));
+    notCancelled.forEach((order) => order.items.forEach((item) => itemMap.set(item.name, (itemMap.get(item.name) || 0) + item.quantity)));
     const popular = [...itemMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
     const aov = paid.length ? revenue / paid.length : 0;
-    return { revenue, active, completed: orders.filter((o) => o.status === "Completed").length, popular, aov, count: paid.length };
+    return { revenue, owed, active, completed: orders.filter((o) => o.status === "Completed").length, popular, aov, count: notCancelled.length };
   }, [orders]);
 
   if (authed === null) {
@@ -472,8 +483,8 @@ export default function AdminPage() {
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat label="Active queue" value={String(stats.active)} />
           <Stat label="Completed" value={String(stats.completed)} />
-          <Stat label="Prepaid revenue" value={`$${stats.revenue.toFixed(2)}`} />
-          <Stat label="Avg order" value={`$${stats.aov.toFixed(2)}`} />
+          <Stat label="Paid revenue" value={`$${stats.revenue.toFixed(2)}`} />
+          <Stat label="Owed in store" value={`$${stats.owed.toFixed(2)}`} />
         </div>
 
         {tab === "orders" && (
@@ -496,6 +507,9 @@ export default function AdminPage() {
                       <p className="mt-1 line-clamp-1 text-xs">{order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}</p>
                     </div>
                     <span className="rounded-full bg-cream px-2 py-1 text-[10px] font-bold uppercase">{order.status}</span>
+                    {order.paymentStatus !== "paid" && (
+                      <span className="mt-1 block rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-700 uppercase">💰 {order.paymentStatus}</span>
+                    )}
                   </div>
                 </button>
               ))}
@@ -509,7 +523,7 @@ export default function AdminPage() {
                   <p className="text-sm">{selected.customerName}</p>
                   <a className="block text-sm text-teal underline" href={`tel:${selected.customerPhone}`}>{selected.customerPhone}</a>
                   <p className="text-xs text-warm-gray">{selected.customerEmail}</p>
-                  <p className="text-xs">Ref {selected.paymentRef} · Paid ${(selected.totalCents / 100).toFixed(2)}</p>
+                  <p className="text-xs">Ref {selected.paymentRef} · {selected.paymentStatus === "paid" ? "Paid" : "To pay at counter"} ${(selected.totalCents / 100).toFixed(2)}</p>
                   {selected.notes && <p className="rounded-xl bg-amber-50 p-3 text-xs">Kitchen: {selected.notes}</p>}
                   {selected.items.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
@@ -523,7 +537,16 @@ export default function AdminPage() {
                     <button onClick={() => updateStatus(selected.id, "Completed")} className="w-full rounded-xl bg-green-600 py-3 text-sm font-bold text-white"><Check className="mr-1 inline h-4 w-4" /> Collected</button>
                     <div className="grid grid-cols-2 gap-2">
                       <button onClick={() => updateStatus(selected.id, "Cancelled")} className="rounded-xl border border-red-200 py-2 text-xs text-red-600">Cancel</button>
-                      <button onClick={() => refund(selected.id)} className="rounded-xl border py-2 text-xs">Full refund</button>
+                      {selected.paymentStatus === "paid" ? (
+                        <button onClick={() => refund(selected.id)} className="rounded-xl border py-2 text-xs">Full refund</button>
+                      ) : (
+                        <button
+                          onClick={() => paidInStore(selected.id)}
+                          className="rounded-xl border border-green-200 py-2 text-xs text-green-700"
+                        >
+                          ✓ Paid at counter
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

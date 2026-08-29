@@ -261,10 +261,11 @@ export async function createPaidOrder(input: {
   notes?: string | null;
   promoCode?: string | null;
   redeemPoints?: number;
-  cardNumber: string;
-  cardName: string;
-  expiry: string;
-  cvc: string;
+  method?: "card" | "instore";
+  cardNumber?: string;
+  cardName?: string;
+  expiry?: string;
+  cvc?: string;
 }) {
   if (!input.customerName?.trim() || !input.customerEmail?.includes("@") || !input.customerPhone?.trim()) {
     throw new Error("Name, email and phone are required.");
@@ -304,14 +305,18 @@ export async function createPaidOrder(input: {
     throw new Error("That pickup time is fully booked. Please choose another slot.");
   }
 
-  const card = input.cardNumber.replace(/\s+/g, "");
-  if (!luhnValid(card)) throw new Error("Card number is invalid.");
-  if (!/^\d{2}\/\d{2}$/.test(input.expiry)) throw new Error("Expiry must be MM/YY.");
-  const [mm, yy] = input.expiry.split("/").map(Number);
-  const exp = new Date(2000 + yy, mm, 0);
-  if (mm < 1 || mm > 12 || exp < new Date()) throw new Error("Card is expired.");
-  if (!/^\d{3,4}$/.test(input.cvc)) throw new Error("CVC is invalid.");
-  if (input.cardName.trim().length < 2) throw new Error("Cardholder name is required.");
+  const payInStore = input.method === "instore";
+  let card = "";
+  if (!payInStore) {
+    card = String(input.cardNumber || "").replace(/\s+/g, "");
+    if (!luhnValid(card)) throw new Error("Card number is invalid.");
+    if (!/^\d{2}\/\d{2}$/.test(String(input.expiry || ""))) throw new Error("Expiry must be MM/YY.");
+    const [mm, yy] = String(input.expiry).split("/").map(Number);
+    const exp = new Date(2000 + yy, mm, 0);
+    if (mm < 1 || mm > 12 || exp < new Date()) throw new Error("Card is expired.");
+    if (!/^\d{3,4}$/.test(String(input.cvc || ""))) throw new Error("CVC is invalid.");
+    if (String(input.cardName || "").trim().length < 2) throw new Error("Cardholder name is required.");
+  }
 
   const reference = `ALN-${randomUUID().slice(0, 8).toUpperCase()}`;
   const pointsEarned = Math.floor(totalCents / store.loyaltySpendPerPoint);
@@ -332,7 +337,7 @@ export async function createPaidOrder(input: {
       loyaltyPointsEarned: pointsEarned,
       loyaltyPointsRedeemed: redeem,
       status: "Confirmed",
-      paymentStatus: "paid",
+      paymentStatus: payInStore ? "pay on pickup" : "paid",
       paymentRef: reference,
       notes: input.notes || null,
       verifiedAt: new Date(),
@@ -342,10 +347,10 @@ export async function createPaidOrder(input: {
   await db.insert(payments).values({
     orderId: order.id,
     amountCents: totalCents,
-    status: "captured",
-    method: "card",
-    last4: card.slice(-4),
-    brand: cardBrand(card),
+    status: payInStore ? "pending" : "captured",
+    method: payInStore ? "instore" : "card",
+    last4: card ? card.slice(-4) : null,
+    brand: card ? cardBrand(card) : null,
     reference,
   });
 
@@ -368,7 +373,7 @@ export async function createPaidOrder(input: {
     orderId: order.id,
     actor: "customer",
     toStatus: "Confirmed",
-    note: `Prepaid ${reference}`,
+    note: payInStore ? `Pay on pickup ${reference}` : `Prepaid ${reference}`,
   });
 
   await recordNotification(
@@ -376,14 +381,18 @@ export async function createPaidOrder(input: {
     "email_receipt",
     input.customerEmail,
     `Alenna Cafe order #${order.id} confirmed`,
-    `Kia ora ${input.customerName}, your prepaid order #${order.id} is confirmed for pickup at ${input.pickupTime} on ${input.pickupDate}. Total paid: $${(totalCents / 100).toFixed(2)}. Reference ${reference}.`,
+    payInStore
+      ? `Kia ora ${input.customerName}, your order #${order.id} is confirmed for pickup at ${input.pickupTime} on ${input.pickupDate}. Total to pay at the counter: $${(totalCents / 100).toFixed(2)}. Reference ${reference}.`
+      : `Kia ora ${input.customerName}, your prepaid order #${order.id} is confirmed for pickup at ${input.pickupTime} on ${input.pickupDate}. Total paid: $${(totalCents / 100).toFixed(2)}. Reference ${reference}.`,
   );
   await recordNotification(
     order.id,
     "sms_receipt",
     input.customerPhone,
     "Order confirmed",
-    `Alenna Cafe: order #${order.id} paid. Pickup ${input.pickupTime}. Show this message at the counter.`,
+    payInStore
+      ? `Alenna Cafe: order #${order.id} confirmed. Pay $${(totalCents / 100).toFixed(2)} at pickup ${input.pickupTime}. Show this message at the counter.`
+      : `Alenna Cafe: order #${order.id} paid. Pickup ${input.pickupTime}. Show this message at the counter.`,
   );
 
   return order;
@@ -392,6 +401,25 @@ export async function createPaidOrder(input: {
 export async function listOrders() {
   await ensureSeeded();
   return db.select().from(orders).orderBy(desc(orders.createdAt)).limit(150);
+}
+
+/** Staff confirmed the customer paid at the counter — mark the order fully paid. */
+export async function markPaidInStore(orderId: number) {
+  await ensureSeeded();
+  const [order] = await db
+    .update(orders)
+    .set({ paymentStatus: "paid", status: "Completed", updatedAt: new Date() })
+    .where(eq(orders.id, orderId))
+    .returning();
+  if (!order) throw new Error("Order not found");
+  await db.update(payments).set({ status: "captured" }).where(eq(payments.orderId, orderId));
+  await db.insert(orderEvents).values({
+    orderId,
+    actor: "staff",
+    toStatus: "Completed",
+    note: "Paid at counter",
+  });
+  return order;
 }
 
 export async function updateOrderStatus(id: number, status: string, actor = "staff") {
