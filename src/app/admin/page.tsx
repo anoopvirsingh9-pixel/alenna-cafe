@@ -105,6 +105,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "breakfast", description: "", image: "" });
   const [newPromo, setNewPromo] = useState({ code: "", type: "percent", value: "10", min: "20", description: "" });
+  const [promoMsg, setPromoMsg] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
   const [menuMsg, setMenuMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -131,6 +132,14 @@ export default function AdminPage() {
       staffFetch("/api/admin/data"),
       staffFetch("/api/menu"),
     ]);
+    if (dash.status === 401) {
+      // saved pass expired or invalid — go back to the code keypad
+      unlockedRef.current = false;
+      clearStaffToken();
+      setAuthed(false);
+      setPin("");
+      return;
+    }
     if (!dash.ok) return;
     const data = await dash.json();
     const menuData = await menuRes.json().catch(() => ({ items: [] }));
@@ -278,13 +287,61 @@ export default function AdminPage() {
     flashMenuMsg("📷 Photo updated — press Save on that item to publish it.");
   };
 
+  const flashPromoMsg = (msg: string) => {
+    setPromoMsg(msg);
+    setTimeout(() => setPromoMsg(""), 5000);
+  };
+
   const addPromo = async () => {
-    await staffFetch("/api/admin/data", {
+    const code = newPromo.code.trim().toUpperCase();
+    if (!code) {
+      flashPromoMsg("⚠️ Type a code first (like WINTER5).");
+      return;
+    }
+    const numberValue = Number(newPromo.value);
+    if (!Number.isFinite(numberValue) || numberValue <= 0) {
+      flashPromoMsg("⚠️ Value must be a number bigger than 0.");
+      return;
+    }
+    // percent: value stays as-is (10 = 10% off) · fixed: treat as dollars (5 = $5 off)
+    const valueToSend = newPromo.type === "fixed" ? Math.round(numberValue * 100) : Math.round(numberValue);
+    setBusy(true);
+    const res = await staffFetch("/api/admin/data", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ promo: newPromo }),
+      body: JSON.stringify({ promo: { ...newPromo, code, value: valueToSend } }),
     });
-    setNewPromo({ code: "", type: "percent", value: "10", min: "20", description: "" });
+    setBusy(false);
+    if (res.ok) {
+      flashPromoMsg(`✅ Promo ${code} created — customers can use it right now.`);
+      setNewPromo({ code: "", type: "percent", value: "10", min: "20", description: "" });
+    } else {
+      const data = await res.json().catch(() => ({}));
+      flashPromoMsg(`❌ ${data.error || `Could not create promo (server error ${res.status}).`}`);
+    }
+    load();
+  };
+
+  const togglePromo = async (promo: Promo) => {
+    const res = await staffFetch("/api/admin/data", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ promoToggle: { id: promo.id, active: !promo.active } }),
+    });
+    if (res.ok) flashPromoMsg(promo.active ? `⏸️ ${promo.code} paused — customers can't use it.` : `▶️ ${promo.code} is active again.`);
+    else flashPromoMsg("❌ Could not update that promo.");
+    load();
+  };
+
+  const deletePromo = async (promo: Promo) => {
+    if (!confirm(`Delete promo ${promo.code}? This cannot be undone.`)) return;
+    const res = await staffFetch("/api/admin/data", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ promoDelete: { id: promo.id } }),
+    });
+    if (res.ok) flashPromoMsg(`🗑️ ${promo.code} deleted.`);
+    else flashPromoMsg("❌ Could not delete that promo.");
     load();
   };
 
@@ -605,18 +662,40 @@ export default function AdminPage() {
         {tab === "promos" && (
           <div className="space-y-4">
             <div className="grid gap-3 rounded-2xl bg-white p-4 md:grid-cols-5">
-              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="CODE" value={newPromo.code} onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value })} />
+              <input className="rounded-xl border px-3 py-2 text-sm uppercase" placeholder="CODE (e.g. WINTER5)" value={newPromo.code} onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value })} />
               <select className="rounded-xl border px-3 py-2 text-sm" value={newPromo.type} onChange={(e) => setNewPromo({ ...newPromo, type: e.target.value })}>
-                <option value="percent">Percent</option>
-                <option value="fixed">Fixed cents</option>
+                <option value="percent">% off</option>
+                <option value="fixed">$ off</option>
               </select>
-              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Value" value={newPromo.value} onChange={(e) => setNewPromo({ ...newPromo, value: e.target.value })} />
-              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Min spend $" value={newPromo.min} onChange={(e) => setNewPromo({ ...newPromo, min: e.target.value })} />
-              <button onClick={addPromo} className="rounded-xl bg-teal font-bold text-brand">Create</button>
+              <input className="rounded-xl border px-3 py-2 text-sm" placeholder={newPromo.type === "percent" ? "10 = 10% off" : "5 = $5 off"} value={newPromo.value} onChange={(e) => setNewPromo({ ...newPromo, value: e.target.value })} />
+              <input className="rounded-xl border px-3 py-2 text-sm" placeholder="Min spend $ (optional)" value={newPromo.min} onChange={(e) => setNewPromo({ ...newPromo, min: e.target.value })} />
+              <button onClick={addPromo} disabled={busy} className="rounded-xl bg-teal font-bold text-brand disabled:opacity-50">Create</button>
             </div>
+            {promoMsg && (
+              <div className="rounded-xl border border-brand/40 bg-white px-4 py-3 text-sm font-semibold text-teal shadow-sm">{promoMsg}</div>
+            )}
             {promos.map((promo) => (
-              <div key={promo.id} className="rounded-2xl bg-white p-4 text-sm">
-                <strong>{promo.code}</strong> · {promo.type === "percent" ? `${promo.value}%` : `$${(promo.value / 100).toFixed(2)}`} off · used {promo.uses} times · {promo.description}
+              <div key={promo.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4 text-sm">
+                <div>
+                  <strong>{promo.code}</strong> {promo.active ? (
+                    <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700 uppercase">Active</span>
+                  ) : (
+                    <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-bold text-gray-600 uppercase">Paused</span>
+                  )}
+                  <br />
+                  <span className="text-warm-gray">
+                    {promo.type === "percent" ? `${promo.value}% off` : `$${(promo.value / 100).toFixed(2)} off`}
+                    {promo.minCents > 0 ? ` · min spend $${(promo.minCents / 100).toFixed(2)}` : ""} · used {promo.uses} times {promo.description ? `· ${promo.description}` : ""}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => togglePromo(promo)} className="rounded-xl border px-3 py-2 text-xs font-bold">
+                    {promo.active ? "Pause" : "Activate"}
+                  </button>
+                  <button onClick={() => deletePromo(promo)} className="rounded-xl border border-red-200 px-3 py-2 text-xs font-bold text-red-600">
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>

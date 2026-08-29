@@ -1,12 +1,15 @@
 import { db } from "@/db";
 import { customers, menuItems, promoCodes, settings } from "@/db/schema";
 import { defaultPromos, defaultSettings, menuItems as seedMenu } from "@/lib/menu-data";
+import { ensureSchema } from "@/lib/ensure-schema";
 import { eq } from "drizzle-orm";
 
 let seeded = false;
 
 export async function ensureSeeded() {
   if (seeded) return;
+  // self-heal: create the tables first if this is a fresh database
+  await ensureSchema();
   const existing = await db.select({ id: menuItems.id }).from(menuItems).limit(1);
   if (existing.length === 0) {
     await db.insert(menuItems).values(
