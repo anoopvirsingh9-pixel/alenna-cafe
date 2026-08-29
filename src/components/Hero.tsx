@@ -29,7 +29,7 @@ export default function Hero() {
           <Star className="h-4 w-4 fill-brand text-brand" />
           4.9 · 46 reviews
           <span className="h-4 w-px bg-white/30" />
-          Prepaid pickup
+          Order ahead · pay in store
         </motion.div>
 
         <motion.h1
@@ -49,7 +49,7 @@ export default function Hero() {
           transition={{ delay: 0.3 }}
           className="mx-auto mb-8 max-w-2xl text-lg text-white/80"
         >
-          Generous plates, signature coffee, and a warm Takanini welcome. Order online, prepay, and pick up when it is ready.
+          Generous plates, signature coffee, and a warm Takanini welcome. Order online, pay at the counter, and pick up when it is ready.
         </motion.p>
 
         <motion.div
@@ -59,7 +59,7 @@ export default function Hero() {
           className="mb-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <a href="#order" className="rounded-full bg-brand px-8 py-4 text-lg font-semibold text-teal-deep shadow-xl">
-            Order & prepay
+            Order pickup
           </a>
           <a href="#menu" className="rounded-full border-2 border-white/40 px-8 py-4 text-lg font-semibold text-white backdrop-blur-sm">
             View the menu

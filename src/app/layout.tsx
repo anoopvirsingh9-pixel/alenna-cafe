@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Alenna Cafe Takanini | Breakfast, Brunch & Lunch",
   description:
-    "Alenna Cafe in Takanini — generous portions, excellent coffee, and prepaid online pickup. 9/226 Great South Road, Auckland.",
+    "Alenna Cafe in Takanini — generous portions, excellent coffee, order online and pay in store. 9/226 Great South Road, Auckland.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

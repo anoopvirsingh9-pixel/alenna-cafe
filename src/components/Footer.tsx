@@ -11,7 +11,7 @@ export default function Footer() {
           <div className="md:col-span-1">
             <Logo size={72} />
             <p className="mt-4 text-sm leading-relaxed text-white/60">
-              Neighbourhood cafe in Takanini. Generous portions, excellent coffee, prepaid pickup.
+              Neighbourhood cafe in Takanini. Generous portions, excellent coffee, order ahead and pay in store.
             </p>
           </div>
           <div>

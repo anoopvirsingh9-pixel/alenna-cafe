@@ -373,7 +373,7 @@ export async function createPaidOrder(input: {
     orderId: order.id,
     actor: "customer",
     toStatus: "Confirmed",
-    note: payInStore ? `Pay on pickup ${reference}` : `Prepaid ${reference}`,
+    note: payInStore ? `Pay on pickup ${reference}` : `Paid ${reference}`,
   });
 
   await recordNotification(
@@ -383,7 +383,7 @@ export async function createPaidOrder(input: {
     `Alenna Cafe order #${order.id} confirmed`,
     payInStore
       ? `Kia ora ${input.customerName}, your order #${order.id} is confirmed for pickup at ${input.pickupTime} on ${input.pickupDate}. Total to pay at the counter: $${(totalCents / 100).toFixed(2)}. Reference ${reference}.`
-      : `Kia ora ${input.customerName}, your prepaid order #${order.id} is confirmed for pickup at ${input.pickupTime} on ${input.pickupDate}. Total paid: $${(totalCents / 100).toFixed(2)}. Reference ${reference}.`,
+      : `Kia ora ${input.customerName}, your order #${order.id} is confirmed for pickup at ${input.pickupTime} on ${input.pickupDate}. Total paid: $${(totalCents / 100).toFixed(2)}. Reference ${reference}.`,
   );
   await recordNotification(
     order.id,
@@ -453,7 +453,7 @@ export async function updateOrderStatus(id: number, status: string, actor = "sta
       "email_cancel",
       current.customerEmail,
       `Order #${id} cancelled`,
-      `Your Alenna Cafe order #${id} was cancelled. If you prepaid, a refund can be issued from the staff dashboard.`,
+      `Your Alenna Cafe order #${id} was cancelled. If you already paid at the counter, the cafe will sort it out — just ask.`,
     );
   }
   return updated;

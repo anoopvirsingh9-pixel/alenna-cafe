@@ -30,12 +30,12 @@ export default function Rewards({ onReorder }: RewardsProps) {
     if (!data.customer) {
       setPoints(0);
       setOrders([]);
-      setMessage("No rewards account yet. Place a prepaid order to start earning 1 point per dollar.");
+      setMessage("No rewards account yet. Place a pickup order to start earning 1 point per dollar.");
       return;
     }
     setPoints(data.customer.points);
     setOrders(data.orders || []);
-    setMessage(`${data.customer.name} has ${data.customer.orderCount} prepaid orders.`);
+    setMessage(`${data.customer.name} has ${data.customer.orderCount} pickup orders.`);
   };
 
   return (
@@ -45,7 +45,7 @@ export default function Rewards({ onReorder }: RewardsProps) {
           <Gift className="mx-auto mb-3 h-8 w-8 text-brand" />
           <h2 className="text-4xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>Alenna Rewards</h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/70">
-            Earn 1 point for every prepaid dollar. Redeem 100 points for $5 off. Look up your balance and reorder favourites.
+            Earn 1 point for every dollar. Redeem 100 points for $5 off. Look up your balance and reorder favourites.
           </p>
         </div>
         <div className="rounded-3xl bg-white p-6 text-charcoal shadow-xl">

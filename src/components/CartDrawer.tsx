@@ -86,7 +86,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onAdd, onRemove, onC
                   <span className="text-xl font-bold text-teal">${total.toFixed(2)}</span>
                 </div>
                 <button onClick={onCheckout} className="w-full rounded-xl bg-teal py-4 text-lg font-semibold text-brand">
-                  Secure checkout · ${total.toFixed(2)}
+                  Checkout · pay ${total.toFixed(2)} in store
                 </button>
               </div>
             )}

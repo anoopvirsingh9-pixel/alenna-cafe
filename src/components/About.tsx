@@ -29,7 +29,7 @@ export default function About() {
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-warm-gray">
             In the heart of Takanini, Alenna is known for generous portions and coffee that keeps regulars coming back.
-            Breakfast, brunch and lunch are cooked to order — now with prepaid online pickup so you can skip the queue.
+            Breakfast, brunch and lunch are cooked to order — now with online ordering so you can skip the queue.
           </p>
           <p className="mt-4 text-lg leading-relaxed text-warm-gray">
             Need gluten-free? Swap ciabatta for hash browns. Plant milk, kids options and kitchen notes are built into every order.

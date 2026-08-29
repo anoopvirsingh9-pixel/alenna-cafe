@@ -202,7 +202,7 @@ export default function AdminPage() {
   };
 
   const refund = async (id: number) => {
-    if (!confirm("Refund this prepaid order in full?")) return;
+    if (!confirm("Refund this paid order in full?")) return;
     await staffFetch("/api/orders", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -654,7 +654,7 @@ export default function AdminPage() {
             </div>
             <div className="rounded-2xl bg-white p-6 text-sm leading-7">
               <h3 className="mb-4 font-bold text-teal">Trading snapshot</h3>
-              <p>Prepaid orders: {stats.count}</p>
+              <p>Orders: {stats.count}</p>
               <p>Revenue after refunds: ${stats.revenue.toFixed(2)}</p>
               <p>Average order value: ${stats.aov.toFixed(2)}</p>
               <p>GST is included in listed prices.</p>
