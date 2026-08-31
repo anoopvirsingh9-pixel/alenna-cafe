@@ -367,7 +367,7 @@ export const defaultPromos = [
 export const defaultSettings = {
   orderingEnabled: true,
   maxOrdersPerSlot: 8,
-  minNoticeMinutes: 20,
+  minNoticeMinutes: 30,
   slotMinutes: 30,
   loyaltySpendPerPoint: 100,
   loyaltyRedeemValue: 5,

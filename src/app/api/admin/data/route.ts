@@ -80,5 +80,9 @@ export async function PUT(request: NextRequest) {
     await db.delete(promoCodes).where(eq(promoCodes.id, Number(body.promoDelete.id)));
     return NextResponse.json({ success: true });
   }
+  if (body.notificationsClear) {
+    await db.delete(notifications);
+    return NextResponse.json({ success: true });
+  }
   return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 }

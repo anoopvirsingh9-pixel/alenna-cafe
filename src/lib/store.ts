@@ -67,29 +67,40 @@ export function cardBrand(number: string) {
 }
 
 export function generatePickupSlots(settingsValue: StoreSettings) {
-  const slots: { value: string; label: string; date: string }[] = [];
-  const now = new Date();
-  const min = new Date(now.getTime() + settingsValue.minNoticeMinutes * 60 * 1000);
+  // All maths is done in CAFE WALL TIME (Pacific/Auckland), not server time —
+  // Vercel runs in UTC, which used to make "today" disappear early.
+  const NZ = "Pacific/Auckland";
+  const nowNz = new Date(new Date().toLocaleString("en-US", { timeZone: NZ }));
+  const minNz = new Date(nowNz.getTime() + settingsValue.minNoticeMinutes * 60 * 1000);
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: NZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const todayStr = fmt.format(new Date());
+  const tomorrowStr = fmt.format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000));
 
+  const slots: { value: string; label: string; date: string }[] = [];
   for (let dayOffset = 0; dayOffset < 2; dayOffset += 1) {
-    const day = new Date(now);
-    day.setDate(now.getDate() + dayOffset);
+    const day = new Date(nowNz);
+    day.setDate(nowNz.getDate() + dayOffset);
     const weekday = day.getDay();
     const openHour = weekday === 0 || weekday === 6 ? 7 : 6;
-    const dateLabel = day.toISOString().slice(0, 10);
+    const dateStr = dayOffset === 0 ? todayStr : tomorrowStr;
 
     for (let h = openHour; h < 16; h += 1) {
       for (let m = 0; m < 60; m += settingsValue.slotMinutes) {
         const slot = new Date(day);
         slot.setHours(h, m, 0, 0);
-        if (slot < min) continue;
+        if (slot < minNz) continue;
         const hh = String(h).padStart(2, "0");
         const mm = String(m).padStart(2, "0");
         const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
         const suffix = h >= 12 ? "PM" : "AM";
         slots.push({
           value: `${hh}:${mm}`,
-          date: dateLabel,
+          date: dateStr,
           label: `${dayOffset === 0 ? "Today" : "Tomorrow"} ${hour12}:${mm} ${suffix}`,
         });
       }

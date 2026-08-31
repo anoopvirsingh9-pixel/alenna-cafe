@@ -40,7 +40,7 @@ export default function TrackOrder() {
           Track Your Pickup
         </h2>
         <p className="text-warm-gray mb-8">
-          Enter your Order ID (e.g. 1, 2) to check live kitchen status and pickup details.
+          Enter your Order ID (e.g. 15), your phone, or the email you ordered with — we’ll find it.
         </p>
 
         <form onSubmit={handleSearch} className="flex gap-2 max-w-md mx-auto mb-8">
@@ -49,7 +49,7 @@ export default function TrackOrder() {
             <input
               type="text"
               inputMode="numeric"
-              placeholder="Enter your Order ID (shown after checkout)..."
+              placeholder="Order ID, phone or email..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-teal text-sm"

@@ -220,6 +220,29 @@ export default function AdminPage() {
     load();
   };
 
+  const deleteOrder = async (id: number) => {
+    if (!confirm(`Permanently delete order #${id}? It will vanish completely (no cancelled clutter).`)) return;
+    setSelected(null);
+    await staffFetch(`/api/orders?id=${id}`, { method: "DELETE" });
+    load();
+  };
+
+  const clearCancelled = async () => {
+    if (!confirm("Delete ALL cancelled orders? They vanish completely — the board stays clean.")) return;
+    await staffFetch("/api/orders?scope=cancelled", { method: "DELETE" });
+    load();
+  };
+
+  const clearMessages = async () => {
+    if (!confirm("Clear all messages in the inbox?")) return;
+    await staffFetch("/api/admin/data", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notificationsClear: true }),
+    });
+    load();
+  };
+
   const saveSettings = async (next: StoreSettings) => {
     setSettings(next);
     const res = await staffFetch("/api/admin/data", {
@@ -497,6 +520,7 @@ export default function AdminPage() {
                     {status}
                   </button>
                 ))}
+                <button onClick={clearCancelled} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600">🧹 Delete cancelled</button>
               </div>
               {filtered.map((order) => (
                 <button key={order.id} onClick={() => setSelected(order)} className={`w-full rounded-2xl border p-4 text-left ${selected?.id === order.id ? "border-teal bg-brand/10" : "border-transparent bg-white"}`}>
@@ -548,6 +572,12 @@ export default function AdminPage() {
                         </button>
                       )}
                     </div>
+                    <button
+                      onClick={() => deleteOrder(selected.id)}
+                      className="w-full rounded-xl border border-red-200 py-2 text-xs font-bold text-red-600"
+                    >
+                      🗑️ Delete order (vanish completely)
+                    </button>
                   </div>
                 </div>
               )}
@@ -726,6 +756,13 @@ export default function AdminPage() {
 
         {tab === "inbox" && (
           <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-warm-gray">Verification codes and receipts the site generated.</p>
+              {notes.length > 0 && (
+                <button onClick={clearMessages} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600">🧹 Clear all messages</button>
+              )}
+            </div>
+            {notes.length === 0 && <p className="rounded-2xl bg-white p-6 text-center text-sm text-warm-gray">Inbox is clean ✨</p>}
             {notes.map((note) => (
               <div key={note.id} className="rounded-2xl bg-white p-4">
                 <p className="text-xs tracking-wide text-warm-gray uppercase">{note.type} · {note.destination}</p>

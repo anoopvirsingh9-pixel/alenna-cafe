@@ -3,8 +3,8 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { listOrders, markPaidInStore, refundOrder, updateOrderStatus } from "@/lib/store";
 import { ensureSeeded } from "@/lib/seed";
 import { db } from "@/db";
-import { orders } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { notifications, orderEvents, orders, payments } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,34 @@ export async function GET(request: NextRequest) {
   const email = searchParams.get("email");
 
   if (id) {
-    const order = (await db.select().from(orders).where(eq(orders.id, Number(id))))[0];
+    // Smart lookup: order number, "#12", ALN-reference, email or phone all work.
+    const raw = id.trim().replace(/^#/, "");
+    let order: typeof orders.$inferSelect | undefined;
+
+    if (/^\d+$/.test(raw)) {
+      order = (await db.select().from(orders).where(eq(orders.id, Number(raw))))[0];
+    }
+    if (!order && raw.toUpperCase().startsWith("ALN-")) {
+      order = (await db.select().from(orders).where(eq(orders.paymentRef, raw.toUpperCase())))[0];
+    }
+    if (!order && raw.includes("@")) {
+      order = (
+        await db
+          .select()
+          .from(orders)
+          .where(eq(orders.customerEmail, raw.toLowerCase()))
+          .orderBy(desc(orders.createdAt))
+          .limit(1)
+      )[0];
+    }
+    if (!order) {
+      // phone — compare on digits only so +64 / 021 / spaces all match
+      const digits = raw.replace(/\D/g, "").slice(-9);
+      if (digits.length >= 7) {
+        const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(150);
+        order = rows.find((row) => row.customerPhone.replace(/\D/g, "").endsWith(digits));
+      }
+    }
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     return NextResponse.json({ order });
   }
@@ -53,4 +80,32 @@ export async function PUT(request: NextRequest) {
       { status: 400 },
     );
   }
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!(await isAdminAuthenticated(request))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { searchParams } = new URL(request.url);
+  const scope = searchParams.get("scope");
+
+  if (scope === "cancelled") {
+    // wipe every cancelled order so the board stays clean
+    const gone = await db.select({ id: orders.id }).from(orders).where(eq(orders.status, "Cancelled"));
+    for (const row of gone) {
+      await db.delete(notifications).where(eq(notifications.orderId, row.id));
+      await db.delete(orderEvents).where(eq(orderEvents.orderId, row.id));
+      await db.delete(payments).where(eq(payments.orderId, row.id));
+    }
+    await db.delete(orders).where(eq(orders.status, "Cancelled"));
+    return NextResponse.json({ success: true, deleted: gone.length });
+  }
+
+  const id = Number(searchParams.get("id"));
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  await db.delete(notifications).where(eq(notifications.orderId, id));
+  await db.delete(orderEvents).where(eq(orderEvents.orderId, id));
+  await db.delete(payments).where(eq(payments.orderId, id));
+  await db.delete(orders).where(eq(orders.id, id));
+  return NextResponse.json({ success: true, deleted: 1 });
 }
