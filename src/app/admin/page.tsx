@@ -56,7 +56,7 @@ type Customer = {
 };
 
 type Promo = { id: number; code: string; type: string; value: number; minCents: number; uses: number; active: boolean; description: string | null };
-type MenuRow = { id: string; name: string; description: string; price: number; category: string; image: string; soldOut: boolean; available: boolean; tags: string[] };
+type MenuRow = { id: string; name: string; description: string; price: number | string; category: string; image: string; soldOut: boolean; available: boolean; tags: string[] };
 type Note = { id: number; type: string; destination: string; subject: string; message: string; createdAt: string };
 
 type Tab = "orders" | "menu" | "reports" | "customers" | "promos" | "settings" | "inbox";
@@ -284,9 +284,9 @@ export default function AdminPage() {
       flashMenuMsg("⚠️ Give the new item at least a name and a price.");
       return;
     }
-    const priceNumber = Number(newItem.price);
+    const priceNumber = Number(newItem.price.replace(/[[$,\s]/g, ""));
     if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
-      flashMenuMsg("⚠️ Price must be a number like 12.50");
+      flashMenuMsg("⚠️ Price must be a number — 12.50, 12 or $12.50 all work.");
       return;
     }
     setBusy(true);
@@ -469,6 +469,13 @@ export default function AdminPage() {
             <button onClick={load} className="rounded-xl bg-white/10 p-2"><RotateCw className="h-4 w-4" /></button>
             <a href="/" className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold">Website</a>
             <a
+              href="/poster"
+              target="_blank"
+              className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold inline-flex items-center gap-1.5"
+            >
+              🖼️ QR poster
+            </a>
+            <a
               href="/api/download"
               download="alenna-cafe.zip"
               className="rounded-xl bg-brand px-3 py-2 text-xs font-bold text-teal-deep inline-flex items-center gap-1.5"
@@ -645,7 +652,7 @@ export default function AdminPage() {
                         <option value="drinks">☕ Drinks</option>
                       </select>
                       <label className="flex items-center gap-1 font-semibold">$
-                        <input className="w-16 rounded-lg border px-2 py-1.5" value={item.price} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, price: Number(e.target.value) } : row)))} />
+                        <input className="w-16 rounded-lg border px-2 py-1.5" value={item.price} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, price: e.target.value } : row)))} />
                       </label>
                       <label className="flex items-center gap-1.5 font-semibold"><input type="checkbox" checked={item.soldOut} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, soldOut: e.target.checked } : row)))} /> Sold out</label>
                       <label className="flex items-center gap-1.5 font-semibold"><input type="checkbox" checked={item.available !== false} onChange={(e) => setMenu((rows) => rows.map((row) => (row.id === item.id ? { ...row, available: e.target.checked } : row)))} /> Visible on site</label>
