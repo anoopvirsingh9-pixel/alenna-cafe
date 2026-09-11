@@ -35,7 +35,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     pickup: "",
     notes: "",
     promo: "",
-    redeem: 0,
     channel: "sms" as "sms" | "email",
   });
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -46,11 +45,9 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
   const [discount, setDiscount] = useState(0);
   const [promoLabel, setPromoLabel] = useState("");
   const [orderId, setOrderId] = useState<number | null>(null);
-  const [points, setPoints] = useState(0);
 
   const subtotal = cartSubtotal(cart);
-  const redeemValue = form.redeem * 0.05;
-  const total = Math.max(0.5, subtotal - discount - redeemValue);
+  const total = Math.max(0.5, subtotal - discount);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -129,13 +126,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     setErrors((prev) => ({ ...prev, promo: "" }));
   };
 
-  const lookupPoints = async () => {
-    if (!form.email.includes("@")) return;
-    const res = await fetch(`/api/loyalty?email=${encodeURIComponent(form.email)}`);
-    const data = await res.json();
-    setPoints(data.customer?.points || 0);
-  };
-
   const pay = async () => {
     if (!selectedSlot) return;
     setStep("processing");
@@ -150,7 +140,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         pickupDate: selectedSlot.date,
         notes: form.notes,
         promoCode: promoLabel || form.promo,
-        redeemPoints: form.redeem,
         method: "instore",
         items: cart.map((item) => ({
           id: item.id,
@@ -243,7 +232,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-teal"><Mail className="mr-1 inline h-4 w-4" /> Email</label>
-                  <input className="w-full rounded-xl border px-4 py-3 text-sm" value={form.email} onBlur={lookupPoints} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  <input className="w-full rounded-xl border px-4 py-3 text-sm" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-teal"><Phone className="mr-1 inline h-4 w-4" /> Phone</label>
@@ -267,20 +256,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               </div>
               {errors.promo && <p className="text-xs text-red-500">{errors.promo}</p>}
               {promoLabel && <p className="text-xs text-green-700">{promoLabel} applied (−${discount.toFixed(2)})</p>}
-
-              {points > 0 && (
-                <label className="block text-sm">
-                  Redeem loyalty points ({points} available, 1 pt = $0.05)
-                  <input
-                    type="number"
-                    min={0}
-                    max={Math.min(points, 200)}
-                    className="mt-1 w-full rounded-xl border px-4 py-3"
-                    value={form.redeem}
-                    onChange={(e) => setForm({ ...form, redeem: Number(e.target.value) })}
-                  />
-                </label>
-              )}
 
               <label className="block text-sm font-semibold text-teal"><MessageSquare className="mr-1 inline h-4 w-4" /> Kitchen notes</label>
               <textarea className="w-full rounded-xl border px-4 py-3 text-sm" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -311,7 +286,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               <div className="rounded-2xl bg-cream p-4 text-sm">
                 <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
                 {discount > 0 && <div className="flex justify-between text-green-700"><span>Promo</span><span>−${discount.toFixed(2)}</span></div>}
-                {redeemValue > 0 && <div className="flex justify-between text-green-700"><span>Loyalty</span><span>−${redeemValue.toFixed(2)}</span></div>}
                 <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold text-teal"><span>Total</span><span>${total.toFixed(2)}</span></div>
               </div>
 
