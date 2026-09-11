@@ -16,11 +16,15 @@ function toCents(value: unknown): number | null {
 }
 
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   await ensureSeeded();
+  const staff = await isAdminAuthenticated(request);
   const items = await db.select().from(menuItems).orderBy(asc(menuItems.sortOrder));
+  // The public site only sees items the manager marked "visible".
+  // The staff dashboard sees everything (including hidden items) so they can be re-enabled.
+  const visible = staff ? items : items.filter((item) => item.available !== false);
   return NextResponse.json({
-    items: items.map((item) => ({
+    items: visible.map((item) => ({
       ...item,
       price: item.priceCents / 100,
     })),

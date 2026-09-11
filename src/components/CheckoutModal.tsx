@@ -39,6 +39,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     channel: "sms" as "sms" | "email",
   });
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [orderingLive, setOrderingLive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -55,7 +56,10 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     if (!isOpen) return;
     fetch("/api/slots")
       .then((res) => res.json())
-      .then((data) => setSlots(data.slots || []))
+      .then((data) => {
+        setSlots(data.slots || []);
+        setOrderingLive(data.orderingEnabled !== false);
+      })
       .catch(() => setSlots([]));
   }, [isOpen]);
 
@@ -225,6 +229,13 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
               {errors.form && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{errors.form}</p>}
 
+              {!orderingLive && (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
+                  <p className="font-bold text-amber-800">Ordering is paused right now</p>
+                  <p className="mt-1 text-xs text-amber-700">The kitchen has temporarily switched off online ordering. Please call the cafe on 09 299 2916 or try again later.</p>
+                </div>
+              )}
+
               <label className="block text-sm font-semibold text-teal"><User className="mr-1 inline h-4 w-4" /> Full name</label>
               <input className="w-full rounded-xl border px-4 py-3 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
@@ -337,7 +348,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
         {step === "details" && (
           <div className="border-t bg-cream/40 p-6">
-            <button onClick={sendCode} className="w-full rounded-xl bg-teal py-4 font-bold text-brand">Send verification code</button>
+            <button onClick={sendCode} disabled={!orderingLive} className="w-full rounded-xl bg-teal py-4 font-bold text-brand disabled:opacity-50">Send verification code</button>
           </div>
         )}
         {step === "pay" && (
