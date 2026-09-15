@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   CheckCircle,
   Clock,
@@ -10,7 +10,6 @@ import {
   Mail,
   MessageSquare,
   Phone,
-  ShieldCheck,
   User,
   X,
 } from "lucide-react";
@@ -27,7 +26,7 @@ type CheckoutModalProps = {
 };
 
 export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }: CheckoutModalProps) {
-  const [step, setStep] = useState<"details" | "verify" | "pay" | "processing" | "success">("details");
+  const [step, setStep] = useState<"details" | "pay" | "processing" | "success">("details");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -35,13 +34,10 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     pickup: "",
     notes: "",
     promo: "",
-    channel: "sms" as "sms" | "email",
   });
   const [slots, setSlots] = useState<Slot[]>([]);
   const [orderingLive, setOrderingLive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [preview, setPreview] = useState<string | null>(null);
-  const [code, setCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [promoLabel, setPromoLabel] = useState("");
   const [orderId, setOrderId] = useState<number | null>(null);
@@ -65,7 +61,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     [slots, form.pickup],
   );
 
-  const destination = form.channel === "email" ? form.email : form.phone;
 
   const validateDetails = () => {
     const next: Record<string, string> = {};
@@ -77,34 +72,8 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     return Object.keys(next).length === 0;
   };
 
-  const sendCode = async () => {
+  const goToSummary = () => {
     if (!validateDetails()) return;
-    const res = await fetch("/api/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "send", destination, channel: form.channel }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setErrors({ form: data.error || "Could not send code" });
-      return;
-    }
-    setPreview(data.preview);
-    setStep("verify");
-  };
-
-  const verifyCode = async () => {
-    const res = await fetch("/api/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "check", destination, code }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setErrors({ verification: data.error || "Invalid code" });
-      return;
-    }
-    setErrors({});
     setStep("pay");
   };
 
@@ -166,23 +135,6 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
   return (
     <>
-      <AnimatePresence>
-        {preview && (
-          <motion.div
-            initial={{ y: -80, opacity: 0 }}
-            animate={{ y: 16, opacity: 1 }}
-            exit={{ y: -80, opacity: 0 }}
-            className="fixed top-0 left-1/2 z-[100] w-11/12 max-w-md -translate-x-1/2 rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-white shadow-2xl"
-          >
-            <div className="mb-2 flex items-center justify-between text-[10px] tracking-widest text-zinc-400 uppercase">
-              Secure verification preview
-              <button onClick={() => setPreview(null)}><X className="h-4 w-4" /></button>
-            </div>
-            <p className="font-mono text-sm leading-relaxed">{preview}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center sm:p-4">
         <motion.div
@@ -193,7 +145,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         <div className="flex items-center justify-between border-b bg-cream px-6 py-5">
           <div>
             <h2 className="text-2xl font-bold text-teal" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {step === "verify" ? "Verify it's you" : step === "pay" ? "Reserve — pay in store" : "Checkout"}
+              {step === "pay" ? "Reserve — pay in store" : "Checkout"}
             </h2>
             <p className="text-xs text-warm-gray">Pay at pickup · GST included · card or cash</p>
           </div>
@@ -263,24 +215,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               <label className="block text-sm font-semibold text-teal"><MessageSquare className="mr-1 inline h-4 w-4" /> Kitchen notes</label>
               <textarea className="w-full rounded-xl border px-4 py-3 text-sm" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
 
-              <div className="flex gap-2 text-sm">
-                <button onClick={() => setForm({ ...form, channel: "sms" })} className={`flex-1 rounded-xl py-2 ${form.channel === "sms" ? "bg-teal text-brand" : "bg-cream"}`}>SMS code</button>
-                <button onClick={() => setForm({ ...form, channel: "email" })} className={`flex-1 rounded-xl py-2 ${form.channel === "email" ? "bg-teal text-brand" : "bg-cream"}`}>Email code</button>
-              </div>
             </>
-          )}
-
-          {step === "verify" && (
-            <div className="space-y-4 py-4 text-center">
-              <ShieldCheck className="mx-auto h-12 w-12 text-teal" />
-              <p className="text-sm text-warm-gray">Enter the 6-digit code sent to {destination}.</p>
-              {errors.verification && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{errors.verification}</p>}
-              <input maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} className="w-full rounded-2xl border py-3 text-center font-mono text-2xl tracking-[0.4em]" placeholder="000000" />
-              <div className="flex gap-2">
-                <button onClick={() => setStep("details")} className="flex-1 rounded-xl border py-3">Back</button>
-                <button onClick={verifyCode} className="flex-1 rounded-xl bg-teal py-3 font-semibold text-brand">Verify</button>
-              </div>
-            </div>
           )}
 
           {step === "pay" && (
@@ -301,7 +236,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
               <div className="flex items-start gap-2 rounded-xl bg-cream/60 p-3 text-xs text-warm-gray">
                 <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Your phone/email is verified with a code so the cafe knows the order is real. No card details needed.</span>
+                <span>The cafe uses your phone and email only to contact you about your order. No card details needed.</span>
               </div>
             </div>
           )}
@@ -325,7 +260,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
         {step === "details" && (
           <div className="border-t bg-cream/40 p-6">
-            <button onClick={sendCode} disabled={!orderingLive} className="w-full rounded-xl bg-teal py-4 font-bold text-brand disabled:opacity-50">Send verification code</button>
+            <button onClick={goToSummary} disabled={!orderingLive} className="w-full rounded-xl bg-teal py-4 font-bold text-brand disabled:opacity-50">Continue</button>
           </div>
         )}
         {step === "pay" && (
