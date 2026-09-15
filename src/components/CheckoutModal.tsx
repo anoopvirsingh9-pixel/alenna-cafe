@@ -6,6 +6,7 @@ import { validateEmail, validatePhone } from "@/lib/validate";
 import {
   CheckCircle,
   Clock,
+  DollarSign,
   Loader2,
   Lock,
   Mail,
@@ -41,6 +42,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discount, setDiscount] = useState(0);
   const [promoLabel, setPromoLabel] = useState("");
+  const [badPromo, setBadPromo] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
 
   const subtotal = cartSubtotal(cart);
@@ -109,12 +111,14 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
       });
       const data = await res.json();
       if (!res.ok || data.error) {
-        setErrors({ form: "", pay: data.error || "That promo code is not valid — press Back to fix or clear it." });
+        setBadPromo(true);
+        setErrors({ form: "", pay: "" });
         return;
       }
       setDiscount((data.discountCents || 0) / 100);
       setPromoLabel(data.promo?.code || form.promo.toUpperCase());
     }
+    setBadPromo(false);
     setStep("processing");
     const res = await fetch("/api/checkout", {
       method: "POST",
@@ -223,9 +227,19 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               </select>
               {errors.pickup && <p className="mt-1 text-xs text-red-500">{errors.pickup}</p>}
 
+              <label className="block text-sm font-semibold text-teal"><DollarSign className="mr-1 inline h-4 w-4" /> Promo code (optional)</label>
               <div className="flex gap-2">
-                <input className="flex-1 rounded-xl border px-4 py-3 text-sm" placeholder="Promo code" value={form.promo} onChange={(e) => setForm({ ...form, promo: e.target.value })} />
+                <input className="flex-1 rounded-xl border px-4 py-3 text-sm" placeholder="e.g. WELCOME10" value={form.promo} onChange={(e) => setForm({ ...form, promo: e.target.value })} />
                 <button onClick={applyPromo} className="rounded-xl bg-cream px-4 text-sm font-semibold text-teal">Apply</button>
+                {form.promo && (
+                  <button
+                    onClick={() => { setForm({ ...form, promo: "" }); setPromoLabel(""); setDiscount(0); setErrors((prev) => ({ ...prev, promo: "" })); }}
+                    className="rounded-xl border border-red-200 px-3 text-xs font-bold text-red-600"
+                    title="Remove promo code"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
               {errors.promo && <p className="text-xs text-red-500">{errors.promo}</p>}
               {promoLabel && <p className="text-xs text-green-700">{promoLabel} applied (−${discount.toFixed(2)})</p>}
@@ -238,6 +252,22 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
           {step === "pay" && (
             <div className="space-y-3">
+              {badPromo && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-semibold text-red-600">That promo code isn't valid.</p>
+                  <button
+                    onClick={() => {
+                      setForm((prev) => ({ ...prev, promo: "" }));
+                      setPromoLabel("");
+                      setDiscount(0);
+                      setBadPromo(false);
+                    }}
+                    className="mt-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white"
+                  >
+                    ✕ Remove promo code & continue without discount
+                  </button>
+                </div>
+              )}
               {errors.pay && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{errors.pay}</p>}
               <div className="rounded-2xl bg-cream p-4 text-sm">
                 <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
