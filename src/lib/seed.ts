@@ -30,7 +30,7 @@ export async function ensureSeeded() {
   }
 
   const promoExisting = await db.select({ id: promoCodes.id }).from(promoCodes).limit(1);
-  if (promoExisting.length === 0) {
+  if (promoExisting.length === 0 && defaultPromos.length > 0) {
     await db.insert(promoCodes).values(
       defaultPromos.map((promo) => ({
         code: promo.code,
@@ -46,18 +46,6 @@ export async function ensureSeeded() {
   const settingExisting = await db.select({ key: settings.key }).from(settings).where(eq(settings.key, "store"));
   if (settingExisting.length === 0) {
     await db.insert(settings).values({ key: "store", value: defaultSettings });
-  }
-
-  const demoCustomer = await db.select({ id: customers.id }).from(customers).where(eq(customers.email, "regular@alennacafe.co.nz"));
-  if (demoCustomer.length === 0) {
-    await db.insert(customers).values({
-      email: "regular@alennacafe.co.nz",
-      name: "Alenna Regular",
-      phone: "+64 21 000 0000",
-      points: 120,
-      totalSpentCents: 8600,
-      orderCount: 4,
-    });
   }
 
   seeded = true;

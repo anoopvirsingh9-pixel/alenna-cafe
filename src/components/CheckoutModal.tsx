@@ -229,7 +229,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
               <label className="block text-sm font-semibold text-teal"><DollarSign className="mr-1 inline h-4 w-4" /> Promo code (optional)</label>
               <div className="flex gap-2">
-                <input className="flex-1 rounded-xl border px-4 py-3 text-sm" placeholder="e.g. WELCOME10" value={form.promo} onChange={(e) => setForm({ ...form, promo: e.target.value })} />
+                <input className="flex-1 rounded-xl border px-4 py-3 text-sm" placeholder="Have a code? Enter it here" value={form.promo} onChange={(e) => setForm({ ...form, promo: e.target.value })} />
                 <button onClick={applyPromo} className="rounded-xl bg-cream px-4 text-sm font-semibold text-teal">Apply</button>
                 {form.promo && (
                   <button

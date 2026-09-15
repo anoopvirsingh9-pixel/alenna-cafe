@@ -84,5 +84,10 @@ export async function PUT(request: NextRequest) {
     await db.delete(notifications);
     return NextResponse.json({ success: true });
   }
+  if (body.customersClear) {
+    // remove test/old customer records (orders themselves are kept)
+    await db.delete(customers);
+    return NextResponse.json({ success: true });
+  }
   return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 }

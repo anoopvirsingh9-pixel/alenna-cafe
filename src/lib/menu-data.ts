@@ -358,11 +358,7 @@ export const menuItems: MenuItem[] = [
   },
 ];
 
-export const defaultPromos = [
-  { code: "WELCOME10", type: "percent", value: 10, minCents: 2000, description: "10% off orders over $20" },
-  { code: "ALENNA5", type: "fixed", value: 500, minCents: 2500, description: "$5 off orders over $25" },
-  { code: "COFFEELOVE", type: "fixed", value: 550, minCents: 1500, description: "Free regular flat white value off $15+" },
-];
+export const defaultPromos: { code: string; type: string; value: number; minCents: number; description: string }[] = [];
 
 export const defaultSettings = {
   orderingEnabled: true,

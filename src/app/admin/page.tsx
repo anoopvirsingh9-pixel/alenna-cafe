@@ -701,6 +701,26 @@ export default function AdminPage() {
         )}
 
         {tab === "customers" && (
+          <div className="space-y-4">
+          {customers.length > 0 && (
+            <div className="flex items-center justify-between rounded-2xl bg-white p-4">
+              <p className="text-sm text-warm-gray">Customer list — grows automatically as people order.</p>
+              <button
+                onClick={async () => {
+                  if (!confirm("Clear the customer list? (Orders are not affected)")) return;
+                  await staffFetch("/api/admin/data", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ customersClear: true }),
+                  });
+                  load();
+                }}
+                className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600"
+              >
+                🧹 Clear customers
+              </button>
+            </div>
+          )}
           <div className="overflow-x-auto rounded-2xl bg-white">
             <table className="w-full text-left text-sm">
               <thead className="bg-cream text-xs uppercase"><tr><th className="p-3">Customer</th><th>Phone</th><th>Orders</th><th>Spend</th><th>Points</th></tr></thead>
@@ -716,6 +736,7 @@ export default function AdminPage() {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         )}
 
@@ -795,7 +816,7 @@ export default function AdminPage() {
               <button onClick={() => saveSettings(settings)} className="rounded-xl bg-teal px-5 py-3 font-bold text-brand">Save settings</button>
               {saveMsg && <span className="text-sm font-semibold text-green-600 animate-pulse">{saveMsg}</span>}
             </div>
-            <p className="text-xs text-warm-gray">Staff code is 4400. Change ADMIN_PIN in production hosting before handing this to the cafe.</p>
+            <p className="text-xs text-warm-gray">Keep your staff code private — share it only with cafe staff.</p>
           </div>
         )}
       </main>
