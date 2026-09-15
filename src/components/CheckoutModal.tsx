@@ -70,8 +70,8 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
   const validateDetails = () => {
     const next: Record<string, string> = {};
     if (!form.name.trim()) next.name = "Name is required";
-    if (!form.email.includes("@")) next.email = "Valid email is required";
-    if (form.phone.replace(/\D/g, "").length < 8) next.phone = "Valid phone is required";
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(form.email)) next.email = "Enter a valid email — e.g. name@gmail.com";
+    if (form.phone.replace(/\D/g, "").length < 8) next.phone = "Enter a valid phone — e.g. 021 234 5678";
     if (!form.pickup) next.pickup = "Choose a pickup slot";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -233,10 +233,12 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-teal"><Mail className="mr-1 inline h-4 w-4" /> Email</label>
                   <input className="w-full rounded-xl border px-4 py-3 text-sm" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                  {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-teal"><Phone className="mr-1 inline h-4 w-4" /> Phone</label>
                   <input className="w-full rounded-xl border px-4 py-3 text-sm" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                  {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
                 </div>
               </div>
 
@@ -249,6 +251,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
                   </option>
                 ))}
               </select>
+              {errors.pickup && <p className="mt-1 text-xs text-red-500">{errors.pickup}</p>}
 
               <div className="flex gap-2">
                 <input className="flex-1 rounded-xl border px-4 py-3 text-sm" placeholder="Promo code" value={form.promo} onChange={(e) => setForm({ ...form, promo: e.target.value })} />
