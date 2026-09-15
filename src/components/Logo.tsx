@@ -13,7 +13,7 @@ export default function Logo({ size = 44, className = "", showWordmark = false, 
         alt="Alenna Cafe"
         width={size}
         height={size}
-        className="rounded-full object-cover shadow-md ring-1 ring-brand/30"
+        className="rounded-full object-contain shadow-md ring-1 ring-brand/30"
         style={{ width: size, height: size }}
       />
       {showWordmark && (

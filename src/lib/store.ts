@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { defaultSettings } from "@/lib/menu-data";
 import { ensureSeeded } from "@/lib/seed";
+import { validateEmail, validatePhone } from "@/lib/validate";
 
 export type StoreSettings = typeof defaultSettings;
 
@@ -278,9 +279,15 @@ export async function createPaidOrder(input: {
   expiry?: string;
   cvc?: string;
 }) {
-  if (!input.customerName?.trim() || !input.customerEmail?.includes("@") || !input.customerPhone?.trim()) {
-    throw new Error("Name, email and phone are required.");
+  if (!input.customerName?.trim() || input.customerName.trim().length < 2) {
+    throw new Error("Please enter your full name.");
   }
+  const emailCheck = validateEmail(input.customerEmail);
+  if (!emailCheck.ok) throw new Error(emailCheck.error);
+  input.customerEmail = emailCheck.email;
+  const phoneCheck = validatePhone(input.customerPhone);
+  if (!phoneCheck.ok) throw new Error(phoneCheck.error);
+  input.customerPhone = phoneCheck.phone;
   if (!input.pickupTime || !input.pickupDate) throw new Error("Choose a pickup slot.");
   if (!Array.isArray(input.items) || input.items.length === 0) throw new Error("Your cart is empty.");
 
