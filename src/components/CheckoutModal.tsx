@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { validateEmail, validatePhone } from "@/lib/validate";
 import {
   CheckCircle,
   Clock,
@@ -65,8 +66,10 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
   const validateDetails = () => {
     const next: Record<string, string> = {};
     if (!form.name.trim()) next.name = "Name is required";
-    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(form.email)) next.email = "Enter a valid email — e.g. name@gmail.com";
-    if (form.phone.replace(/\D/g, "").length < 8) next.phone = "Enter a valid phone — e.g. 021 234 5678";
+    const emailCheck = validateEmail(form.email);
+    if (!emailCheck.ok) next.email = emailCheck.error;
+    const phoneCheck = validatePhone(form.phone);
+    if (!phoneCheck.ok) next.phone = phoneCheck.error;
     if (!form.pickup) next.pickup = "Choose a pickup slot";
     setErrors(next);
     return Object.keys(next).length === 0;
