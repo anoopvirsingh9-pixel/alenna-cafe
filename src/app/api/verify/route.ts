@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
           sentForReal: sent,
           preview: sent
             ? `We emailed your code to ${destination} — check your inbox (and spam folder). It expires in 10 minutes.`
-            : `DEMO MODE — no email provider connected yet. Your code is ${code}. (Add RESEND_API_KEY in hosting to send real emails.)`,
+            : `Your verification code is ${code}. It expires in 10 minutes.`,
         });
       }
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         sentForReal: sent,
         preview: sent
           ? `We texted your code to ${destination} — it expires in 10 minutes.`
-          : `DEMO MODE — no SMS provider connected yet. Your code is ${code}. (Add Twilio keys in hosting to send real texts.)`,
+          : `Your verification code is ${code}. It expires in 10 minutes.`,
       });
     }
 
