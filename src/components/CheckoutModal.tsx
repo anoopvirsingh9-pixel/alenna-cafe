@@ -100,6 +100,21 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
   const pay = async () => {
     if (!selectedSlot) return;
+    // if a promo code was typed but never successfully applied, check it now
+    if (form.promo.trim() && !promoLabel) {
+      const res = await fetch("/api/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: form.promo.trim(), subtotalCents: Math.round(subtotal * 100) }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrors({ form: "", pay: data.error || "That promo code is not valid — press Back to fix or clear it." });
+        return;
+      }
+      setDiscount((data.discountCents || 0) / 100);
+      setPromoLabel(data.promo?.code || form.promo.toUpperCase());
+    }
     setStep("processing");
     const res = await fetch("/api/checkout", {
       method: "POST",
@@ -267,8 +282,9 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
           </div>
         )}
         {step === "pay" && (
-          <div className="border-t p-6">
-            <button onClick={pay} className="w-full rounded-xl bg-teal py-4 font-bold text-brand">Place order — pay ${total.toFixed(2)} in store</button>
+          <div className="flex gap-3 border-t p-6">
+            <button onClick={() => setStep("details")} className="rounded-xl border px-6 py-4 text-sm font-bold text-teal">Back</button>
+            <button onClick={pay} className="flex-1 rounded-xl bg-teal py-4 font-bold text-brand">Place order — pay ${total.toFixed(2)} in store</button>
           </div>
         )}
         </motion.div>

@@ -42,9 +42,10 @@ export function validateEmail(raw: unknown): EmailCheck {
 export function validatePhone(raw: unknown): PhoneCheck {
   const phone = String(raw ?? "").trim();
   if (!phone) return { ok: false, error: "Phone number is required." };
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 8 || digits.length > 13) {
-    return { ok: false, error: "Enter a valid phone number — e.g. 021 234 5678." };
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+  // NZ cafe — accept NZ mobiles (021…) and landlines (09…) or +64 format
+  if (!/^(?:\+64|0)\d{8,10}$/.test(cleaned)) {
+    return { ok: false, error: "Enter a NZ phone number — e.g. 021 234 5678 or 09 299 2916." };
   }
-  return { ok: true, phone };
+  return { ok: true, phone: cleaned };
 }
