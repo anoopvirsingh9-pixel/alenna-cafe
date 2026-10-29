@@ -120,37 +120,39 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
     }
     setBadPromo(false);
     setStep("processing");
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerName: form.name,
-        customerEmail: form.email,
-        customerPhone: form.phone,
-        pickupTime: selectedSlot.value,
-        pickupDate: selectedSlot.date,
-        notes: form.notes,
-        promoCode: promoLabel || form.promo,
-        method: "instore",
-        items: cart.map((item) => ({
-          id: item.id,
-          menuItemId: item.menuItemId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          modifiers: item.modifiers,
-        })),
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          pickupTime: selectedSlot.value,
+          pickupDate: selectedSlot.date,
+          notes: form.notes,
+          promoCode: promoLabel || form.promo,
+          items: cart.map((item) => ({
+            id: item.id,
+            menuItemId: item.menuItemId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            modifiers: item.modifiers,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setStep("pay");
+        setErrors({ pay: data.error || "Could not start the card payment." });
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
       setStep("pay");
-      setErrors({ pay: data.error || "Payment failed" });
-      return;
+      setErrors({ pay: "Network problem — please try again." });
     }
-    setOrderId(data.order.id);
-    setStep("success");
-    setTimeout(onOrderSuccess, 4500);
   };
 
   if (!isOpen) return null;
@@ -167,9 +169,9 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         <div className="flex items-center justify-between border-b bg-cream px-6 py-5">
           <div>
             <h2 className="text-2xl font-bold text-teal" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {step === "pay" ? "Reserve — pay in store" : "Checkout"}
+              {step === "pay" ? "Pay by card" : "Checkout"}
             </h2>
-            <p className="text-xs text-warm-gray">Pay at pickup · GST included · card or cash</p>
+            <p className="text-xs text-warm-gray">Secure card payment · GST included</p>
           </div>
           <button onClick={onClose} className="rounded-full bg-white p-2 shadow-sm"><X className="h-5 w-5" /></button>
         </div>
@@ -276,15 +278,15 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               </div>
 
               <div className="rounded-2xl border-2 border-teal/60 bg-teal/5 p-4">
-                <p className="text-sm font-bold text-teal">🏪 Pay in store — card or cash</p>
+                <p className="text-sm font-bold text-teal">💳 Card payment</p>
                 <p className="mt-1 text-xs leading-relaxed text-warm-gray">
-                  Nothing is charged now. Your order goes straight to the kitchen queue — just give your name or order number at the counter and pay <strong>${total.toFixed(2)}</strong> when you pick up (EFTPOS, card or cash).
+                  You&apos;ll be taken to a secure payment page to pay <strong>${total.toFixed(2)}</strong> by card. Your order is confirmed the moment payment goes through.
                 </p>
               </div>
 
               <div className="flex items-start gap-2 rounded-xl bg-cream/60 p-3 text-xs text-warm-gray">
                 <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>The cafe uses your phone and email only to contact you about your order. No card details needed.</span>
+                <span>Payments are processed by Stripe — the cafe never sees or stores your card details. Your phone and email are only used to contact you about your order.</span>
               </div>
             </div>
           )}
@@ -292,7 +294,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
           {step === "processing" && (
             <div className="flex flex-col items-center py-12">
               <Loader2 className="h-12 w-12 animate-spin text-teal" />
-              <p className="mt-4 font-semibold">Taking payment and sending your receipt…</p>
+              <p className="mt-4 font-semibold">Taking you to the secure card payment…</p>
             </div>
           )}
 
@@ -314,7 +316,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         {step === "pay" && (
           <div className="flex gap-3 border-t p-6">
             <button onClick={() => setStep("details")} className="rounded-xl border px-6 py-4 text-sm font-bold text-teal">Back</button>
-            <button onClick={pay} className="flex-1 rounded-xl bg-teal py-4 font-bold text-brand">Place order — pay ${total.toFixed(2)} in store</button>
+            <button onClick={pay} className="flex-1 rounded-xl bg-teal py-4 font-bold text-brand">Pay ${total.toFixed(2)} by card</button>
           </div>
         )}
         </motion.div>

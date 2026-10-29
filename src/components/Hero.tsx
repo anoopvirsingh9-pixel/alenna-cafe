@@ -29,7 +29,7 @@ export default function Hero() {
           <Star className="h-4 w-4 fill-brand text-brand" />
           4.9 · 46 reviews
           <span className="h-4 w-px bg-white/30" />
-          Order ahead · pay in store
+          Order ahead · pay by card
         </motion.div>
 
         <motion.h1
@@ -49,7 +49,7 @@ export default function Hero() {
           transition={{ delay: 0.3 }}
           className="mx-auto mb-8 max-w-2xl text-lg text-white/80"
         >
-          Generous plates, signature coffee, and a warm Takanini welcome. Order online, pay at the counter, and pick up when it is ready.
+          Generous plates, signature coffee, and a warm Takanini welcome. Order online, pay securely by card, and pick up when it is ready.
         </motion.p>
 
         <motion.div
