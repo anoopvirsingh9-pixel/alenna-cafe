@@ -39,6 +39,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
   });
   const [slots, setSlots] = useState<Slot[]>([]);
   const [orderingLive, setOrderingLive] = useState(true);
+  const [cardFee, setCardFee] = useState<{ enabled: boolean; percent: number; fixedCents: number } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discount, setDiscount] = useState(0);
   const [promoLabel, setPromoLabel] = useState("");
@@ -47,6 +48,8 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
 
   const subtotal = cartSubtotal(cart);
   const total = Math.max(0.5, subtotal - discount);
+  const feeCents = cardFee?.enabled ? Math.round(total * 100 * (cardFee.percent / 100)) + cardFee.fixedCents : 0;
+  const chargeTotal = total + feeCents / 100;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,6 +58,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
       .then((data) => {
         setSlots(data.slots || []);
         setOrderingLive(data.orderingEnabled !== false);
+        if (data.cardFee) setCardFee(data.cardFee);
       })
       .catch(() => setSlots([]));
   }, [isOpen]);
@@ -274,13 +278,16 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
               <div className="rounded-2xl bg-cream p-4 text-sm">
                 <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
                 {discount > 0 && <div className="flex justify-between text-green-700"><span>Promo</span><span>−${discount.toFixed(2)}</span></div>}
-                <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold text-teal"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                {feeCents > 0 && (
+                  <div className="flex justify-between text-warm-gray"><span>Card processing fee ({cardFee?.percent}% + ${(cardFee ? cardFee.fixedCents / 100 : 0).toFixed(2)})</span><span>${(feeCents / 100).toFixed(2)}</span></div>
+                )}
+                <div className="mt-2 flex justify-between border-t pt-2 text-lg font-bold text-teal"><span>Total to pay</span><span>${chargeTotal.toFixed(2)}</span></div>
               </div>
 
               <div className="rounded-2xl border-2 border-teal/60 bg-teal/5 p-4">
                 <p className="text-sm font-bold text-teal">💳 Card payment</p>
                 <p className="mt-1 text-xs leading-relaxed text-warm-gray">
-                  You&apos;ll be taken to a secure payment page to pay <strong>${total.toFixed(2)}</strong> by card. Your order is confirmed the moment payment goes through.
+                  You&apos;ll be taken to a secure payment page to pay <strong>${chargeTotal.toFixed(2)}</strong> by card. Your order is confirmed the moment payment goes through.
                 </p>
               </div>
 
@@ -316,7 +323,7 @@ export default function CheckoutModal({ isOpen, onClose, cart, onOrderSuccess }:
         {step === "pay" && (
           <div className="flex gap-3 border-t p-6">
             <button onClick={() => setStep("details")} className="rounded-xl border px-6 py-4 text-sm font-bold text-teal">Back</button>
-            <button onClick={pay} className="flex-1 rounded-xl bg-teal py-4 font-bold text-brand">Pay ${total.toFixed(2)} by card</button>
+            <button onClick={pay} className="flex-1 rounded-xl bg-teal py-4 font-bold text-brand">Pay ${chargeTotal.toFixed(2)} by card</button>
           </div>
         )}
         </motion.div>

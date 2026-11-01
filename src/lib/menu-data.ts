@@ -369,4 +369,7 @@ export const defaultSettings = {
   loyaltyRedeemValue: 5,
   gstIncluded: true,
   kitchenPrinter: false,
+  cardFeeEnabled: true,
+  cardFeePercent: 2.65,
+  cardFeeFixedCents: 30,
 };

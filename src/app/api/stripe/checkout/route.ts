@@ -68,6 +68,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Order total is too small after discounts." }, { status: 400 });
     }
 
+    // card surcharge (transparent, shown before payment): passes Stripe's
+    // processing cost to the card payer so the cafe nets the menu price
+    const cardFeeEnabled = store.cardFeeEnabled !== false;
+    const cardFeeCents = cardFeeEnabled
+      ? Math.round((totalCents * Number(store.cardFeePercent ?? 2.65)) / 100) + Number(store.cardFeeFixedCents ?? 30)
+      : 0;
+    const chargeCents = totalCents + cardFeeCents;
+
     const taken = await slotCount(body.pickupDate, body.pickupTime);
     if (taken >= store.maxOrdersPerSlot) {
       return NextResponse.json({ error: "That pickup time is fully booked. Please choose another slot." }, { status: 400 });
@@ -87,6 +95,7 @@ export async function POST(request: NextRequest) {
         subtotalCents,
         discountCents,
         totalCents,
+        cardFeeCents,
         promoCode: promoUsed,
         status: "Confirmed",
         paymentStatus: "awaiting payment",
@@ -113,7 +122,7 @@ export async function POST(request: NextRequest) {
           quantity: 1,
           price_data: {
             currency: "nzd",
-            unit_amount: totalCents,
+            unit_amount: chargeCents,
             product_data: {
               name: `Alenna Cafe order #${order.id}`,
               description:
@@ -126,7 +135,7 @@ export async function POST(request: NextRequest) {
       cancel_url: `${origin}/?payment=cancelled`,
     });
 
-    return NextResponse.json({ url: session.url, orderId: order.id });
+    return NextResponse.json({ url: session.url, orderId: order.id, chargeCents, cardFeeCents });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not start card payment." },

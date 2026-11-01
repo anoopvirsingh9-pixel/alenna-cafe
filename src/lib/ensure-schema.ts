@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS "verification_codes" (
   "attempts" integer DEFAULT 0 NOT NULL,
   "created_at" timestamp DEFAULT now() NOT NULL
 );
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "card_fee_cents" integer DEFAULT 0 NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "customers_email_idx" ON "customers" USING btree ("email");
 CREATE UNIQUE INDEX IF NOT EXISTS "promo_codes_code_idx" ON "promo_codes" USING btree ("code");
 `;

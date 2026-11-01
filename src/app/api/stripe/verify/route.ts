@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const [fresh] = await db.select().from(orders).where(eq(orders.id, orderId));
     return NextResponse.json({
       order: fresh
-        ? { id: fresh.id, totalCents: fresh.totalCents, status: fresh.status, paymentStatus: fresh.paymentStatus, pickupDate: fresh.pickupDate, pickupTime: fresh.pickupTime, customerName: fresh.customerName, items: fresh.items, paymentRef: fresh.paymentRef }
+        ? { id: fresh.id, totalCents: fresh.totalCents, cardFeeCents: fresh.cardFeeCents, status: fresh.status, paymentStatus: fresh.paymentStatus, pickupDate: fresh.pickupDate, pickupTime: fresh.pickupTime, customerName: fresh.customerName, items: fresh.items, paymentRef: fresh.paymentRef }
         : null,
       paid: session.payment_status === "paid",
     });
@@ -62,7 +62,7 @@ export async function markOrderPaid(orderId: number) {
 
   await db.insert(payments).values({
     orderId,
-    amountCents: order.totalCents,
+    amountCents: order.totalCents + (order.cardFeeCents || 0),
     status: "captured",
     method: "card",
     reference: order.paymentRef || `ALN-${orderId}`,

@@ -17,6 +17,11 @@ export async function GET() {
   return NextResponse.json({
     orderingEnabled: settings.orderingEnabled,
     gstIncluded: settings.gstIncluded,
+    cardFee: {
+      enabled: settings.cardFeeEnabled !== false,
+      percent: Number(settings.cardFeePercent ?? 2.65),
+      fixedCents: Number(settings.cardFeeFixedCents ?? 30),
+    },
     slots: withCapacity.filter((slot) => slot.remaining > 0),
   });
 }

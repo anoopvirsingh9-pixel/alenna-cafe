@@ -8,6 +8,7 @@ import type { OrderItem } from "@/db/schema";
 type PaidOrder = {
   id: number;
   totalCents: number;
+  cardFeeCents?: number;
   status: string;
   paymentStatus: string;
   pickupDate: string;
@@ -83,9 +84,15 @@ export default function OrderSuccessPage() {
                     <span>${(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
+                {(order.cardFeeCents ?? 0) > 0 && (
+                  <div className="mt-2 flex justify-between text-warm-gray">
+                    <span>Card processing fee</span>
+                    <span>${((order.cardFeeCents ?? 0) / 100).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="mt-2 flex justify-between border-t border-brand/20 pt-2 font-bold text-teal">
                   <span>Total paid</span>
-                  <span>${(order.totalCents / 100).toFixed(2)}</span>
+                  <span>${((order.totalCents + (order.cardFeeCents ?? 0)) / 100).toFixed(2)}</span>
                 </div>
               </div>
             </div>

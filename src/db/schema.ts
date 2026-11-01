@@ -55,6 +55,7 @@ export const orders = pgTable("orders", {
   paymentStatus: text("payment_status").notNull().default("paid"),
   paymentRef: text("payment_ref"),
   refundedCents: integer("refunded_cents").notNull().default(0),
+  cardFeeCents: integer("card_fee_cents").notNull().default(0),
   notes: text("notes"),
   verifiedAt: timestamp("verified_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

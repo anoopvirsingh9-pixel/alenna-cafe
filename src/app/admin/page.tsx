@@ -554,7 +554,7 @@ export default function AdminPage() {
                   <p className="text-sm">{selected.customerName}</p>
                   <a className="block text-sm text-teal underline" href={`tel:${selected.customerPhone}`}>{selected.customerPhone}</a>
                   <p className="text-xs text-warm-gray">{selected.customerEmail}</p>
-                  <p className="text-xs">Ref {selected.paymentRef} · {selected.paymentStatus === "paid" ? "Paid" : "To pay at counter"} ${(selected.totalCents / 100).toFixed(2)}</p>
+                  <p className="text-xs">Ref {selected.paymentRef} · {selected.paymentStatus === "paid" ? "Paid" : "To pay at counter"} ${(selected.totalCents / 100).toFixed(2)}{(selected as any).cardFeeCents ? ` (incl. card fee $${((selected as any).cardFeeCents / 100).toFixed(2)})` : ""}</p>
                   {selected.notes && <p className="rounded-xl bg-amber-50 p-3 text-xs">Kitchen: {selected.notes}</p>}
                   {selected.items.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
@@ -812,6 +812,18 @@ export default function AdminPage() {
             <label className="block text-sm font-semibold">Slot length (minutes)
               <input type="number" className="mt-1 w-full rounded-xl border px-3 py-2" value={settings.slotMinutes} onChange={(e) => setSettings({ ...settings, slotMinutes: Number(e.target.value) })} />
             </label>
+            <label className="flex items-center gap-2 text-sm font-semibold">Add card processing fee at checkout
+              <input type="checkbox" checked={settings.cardFeeEnabled !== false} onChange={(e) => setSettings({ ...settings, cardFeeEnabled: e.target.checked })} />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm font-semibold">Card fee %
+                <input type="number" step="0.01" className="mt-1 w-full rounded-xl border px-3 py-2" value={settings.cardFeePercent ?? 2.65} onChange={(e) => setSettings({ ...settings, cardFeePercent: Number(e.target.value) })} />
+              </label>
+              <label className="block text-sm font-semibold">Card fee fixed (cents)
+                <input type="number" className="mt-1 w-full rounded-xl border px-3 py-2" value={settings.cardFeeFixedCents ?? 30} onChange={(e) => setSettings({ ...settings, cardFeeFixedCents: Number(e.target.value) })} />
+              </label>
+            </div>
+            <p className="text-xs text-warm-gray">When on, customers see a clearly displayed &quot;card processing fee&quot; line at checkout (default 2.65% + 30c) so the cafe receives the full menu price. Turn off anytime.</p>
             <div className="flex items-center gap-4">
               <button onClick={() => saveSettings(settings)} className="rounded-xl bg-teal px-5 py-3 font-bold text-brand">Save settings</button>
               {saveMsg && <span className="text-sm font-semibold text-green-600 animate-pulse">{saveMsg}</span>}
