@@ -49,7 +49,7 @@ export default function Contact() {
                   New Zealand
                 </p>
                 <a
-                  href="https://www.google.com/maps/search/?api=1&query=Alenna+Cafe+Takanini+226+Great+South+Road"
+                  href="https://www.google.com/maps/search/?api=1&query=9%2F226+Great+South+Road%2C+Takanini%2C+Auckland+2112"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-brand font-medium text-sm mt-2 hover:text-brand-dark transition-colors"
@@ -115,7 +115,7 @@ export default function Contact() {
             className="rounded-2xl overflow-hidden shadow-xl h-[500px]"
           >
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3193.8!2d174.9!3d-37.05!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6d0d4b8e5c5c5c5d%3A0x5c5c5c5c5c5c5c5c!2s226%20Great%20South%20Rd%2C%20Takanini%2C%20Auckland%202112%2C%20New%20Zealand!5e0!3m2!1sen!2snz!4v1700000000000!5m2!1sen!2snz"
+              src="https://maps.google.com/maps?q=9%2F226%20Great%20South%20Road%2C%20Takanini%2C%20Auckland%202112%2C%20New%20Zealand&t=&z=16&ie=UTF8&iwloc=&output=embed"
               width="100%"
               height="100%"
               style={{ border: 0 }}
