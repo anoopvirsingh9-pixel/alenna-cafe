@@ -70,41 +70,44 @@ export function cardBrand(number: string) {
 export function generatePickupSlots(settingsValue: StoreSettings) {
   // All maths is done in CAFE WALL TIME (Pacific/Auckland), not server time —
   // Vercel runs in UTC, which used to make "today" disappear early.
+  // HOUSE RULE: orders need 1 day's notice — pickup slots start TOMORROW.
+  // Pickup window: 1 hour after opening → 1 hour before closing.
   const NZ = "Pacific/Auckland";
   const nowNz = new Date(new Date().toLocaleString("en-US", { timeZone: NZ }));
-  const minNz = new Date(nowNz.getTime() + settingsValue.minNoticeMinutes * 60 * 1000);
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: NZ,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-  const todayStr = fmt.format(new Date());
-  const tomorrowStr = fmt.format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000));
+  const dayLabelFmt = new Intl.DateTimeFormat("en-NZ", { timeZone: NZ, weekday: "long" });
+
+  const OPEN = 6; // weekday opening (7 on weekends)
+  const CLOSE = 16; // closing time
 
   const slots: { value: string; label: string; date: string }[] = [];
-  for (let dayOffset = 0; dayOffset < 2; dayOffset += 1) {
+  for (let dayOffset = 1; dayOffset <= 2; dayOffset += 1) {
     const day = new Date(nowNz);
     day.setDate(nowNz.getDate() + dayOffset);
     const weekday = day.getDay();
-    const openHour = weekday === 0 || weekday === 6 ? 7 : 6;
-    const dateStr = dayOffset === 0 ? todayStr : tomorrowStr;
+    const openHour = weekday === 0 || weekday === 6 ? 7 : OPEN;
+    const startMinutes = (openHour + 1) * 60; // one hour after opening
+    const endMinutes = (CLOSE - 1) * 60; // one hour before closing
+    const dateStr = fmt.format(new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000));
+    const dayLabel = dayOffset === 1 ? "Tomorrow" : dayLabelFmt.format(new Date(Date.now() + dayOffset * 24 * 60 * 60 * 1000));
 
-    for (let h = openHour; h < 16; h += 1) {
-      for (let m = 0; m < 60; m += settingsValue.slotMinutes) {
-        const slot = new Date(day);
-        slot.setHours(h, m, 0, 0);
-        if (slot < minNz) continue;
-        const hh = String(h).padStart(2, "0");
-        const mm = String(m).padStart(2, "0");
-        const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-        const suffix = h >= 12 ? "PM" : "AM";
-        slots.push({
-          value: `${hh}:${mm}`,
-          date: dateStr,
-          label: `${dayOffset === 0 ? "Today" : "Tomorrow"} ${hour12}:${mm} ${suffix}`,
-        });
-      }
+    for (let t = startMinutes; t <= endMinutes; t += settingsValue.slotMinutes) {
+      const h = Math.floor(t / 60);
+      const m = t % 60;
+      const hh = String(h).padStart(2, "0");
+      const mm = String(m).padStart(2, "0");
+      const hour12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+      const suffix = h >= 12 ? "PM" : "AM";
+      slots.push({
+        value: `${hh}:${mm}`,
+        date: dateStr,
+        label: `${dayLabel} ${hour12}:${mm} ${suffix}`,
+      });
     }
   }
   return slots;
@@ -289,6 +292,18 @@ export async function createPaidOrder(input: {
   if (!phoneCheck.ok) throw new Error(phoneCheck.error);
   input.customerPhone = phoneCheck.phone;
   if (!input.pickupTime || !input.pickupDate) throw new Error("Choose a pickup slot.");
+  // house rule: orders need 1 day's notice — no same-day pickups
+  {
+    const nzToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Pacific/Auckland",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    if (String(input.pickupDate) <= nzToday) {
+      throw new Error("Orders need at least 1 day's notice — please choose a pickup slot for tomorrow or later.");
+    }
+  }
   if (!Array.isArray(input.items) || input.items.length === 0) throw new Error("Your cart is empty.");
 
   await ensureSeeded();

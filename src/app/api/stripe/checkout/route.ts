@@ -36,6 +36,20 @@ export async function POST(request: NextRequest) {
     if (!body.pickupTime || !body.pickupDate) {
       return NextResponse.json({ error: "Choose a pickup slot." }, { status: 400 });
     }
+    {
+      const nzToday = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Pacific/Auckland",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      if (String(body.pickupDate) <= nzToday) {
+        return NextResponse.json(
+          { error: "Orders need at least 1 day's notice — please choose a pickup slot for tomorrow or later." },
+          { status: 400 },
+        );
+      }
+    }
     if (!Array.isArray(body.items) || body.items.length === 0) {
       return NextResponse.json({ error: "Your cart is empty." }, { status: 400 });
     }
